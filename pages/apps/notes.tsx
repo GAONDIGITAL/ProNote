@@ -424,28 +424,6 @@ const Notes = () => {
         }
     };
 
-    async function test(e:any) {
-        /*await fetch('/api/test')
-        .then((res) => res.json())
-        .then((data) => {
-          console.log(data);
-        });*/
-
-        let now = moment();
-        moment.locale('ko');
-        const fullDate = now.format('YYYY-MM-DD HH:mm:ss');
-        console.log(fullDate);
-        
-        if (e.target.getElementsByClassName('loaderSpan').length) {
-            e.target.getElementsByClassName('loaderSpan').className = 'animate-ping w-3 h-3 ltr:mr-4 rtl:ml-4 inline-block rounded-full bg-white';
-            console.log(e.target.getElementsByClassName('loaderSpan').className);
-        }
-
-        const result = await axios.get('/api/test');
-
-        console.log(result);
-    }
-
     return (
         <div>
             <div className="relative flex h-full gap-5 sm:h-[calc(100vh_-_150px)]">
