@@ -1,6 +1,6 @@
 import PerfectScrollbar from 'react-perfect-scrollbar';
 import { Dialog, Transition } from '@headlessui/react';
-import { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, useRef } from 'react';
 import Swal from 'sweetalert2';
 import { useDispatch, useSelector } from 'react-redux';
 import { IRootState } from '../../store';
@@ -11,6 +11,8 @@ import moment from 'moment';
 import { BsGear, BsPlus, BsArrowDownUp, BsCheckLg, BsTrash } from 'react-icons/bs';
 import { FiLoader } from 'react-icons/fi';
 import { ReactSortable } from 'react-sortablejs';
+import React from 'react';
+import { string } from 'yup';
 
 const Notes = () => {
     const dispatch = useDispatch();
@@ -46,7 +48,7 @@ const Notes = () => {
             description: 'Proin a dui malesuada, laoreet mi vel, imperdiet diam quam laoreet.',
             date: '11/04/2020',
             isFav: false,
-            tag: 'work',
+            tag: 'Work',
         },
         {
             id: 4,
@@ -166,7 +168,7 @@ const Notes = () => {
             description: 'Bulbasaur Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
             date: '11/17/2020',
             isFav: false,
-            tag: 'work',
+            tag: 'Work',
         },
         {
             id: 16,
@@ -369,31 +371,16 @@ const Notes = () => {
 
     const isRtl = useSelector((state: IRootState) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
 
-    const [tagsList, setTagsList] = useState([]);
+    let tagTitleRef = useRef(null);
     const [tagsModal, setTagsModal] = useState(false);
-    useEffect(() => {
-        tagsLoad();
-    }, []);
-    const tagsLoad = async () => {
-        const axiosData = { module: 'tagsLoad', category: 'note', user: 'TEST' };
-        const result = await axios.post('/api/tags', axiosData);
-        setTagsList(result.data);
-        console.log(result.data);
-    };
-    const tagColorChange2 = (code: string, event: any) => {        
-        const value = event.currentTarget.value;
-        //setTagColor(value);
-        console.log(code, value);
-    };
-    const tagTitleChange2 = (code: string, event: any) => {        
-        const value = event.currentTarget.value;
-        //setTagColor(value);
-        console.log(code, value);
-    };
-
     const [tagAdding, setTagAdding] = useState(false);
     const [tagColor, setTagColor] = useState('');
     const [tagTitle, setTagTitle] = useState('');
+    useEffect(() => {
+        if (tagsModal === false) {
+            tagsLoad();
+        }
+    }, [tagsModal]);
     const tagColorChange = (event: any) => {
         const value = event.currentTarget.value;
         setTagColor(value);
@@ -408,21 +395,135 @@ const Notes = () => {
         event.preventDefault();
 
         setTagAdding(true);
-
-        const axiosData = { module: 'tagAdd', category: 'note', user: 'TEST', color: tagColor, title: tagTitle };
+        const seq = tagsList.length;
+        const axiosData = { module: 'tagAdd', category: 'note', user: 'TEST', color: tagColor, title: tagTitle, seq: seq };
         const result = await axios.post('/api/tags', axiosData);
         //console.log(result.data);
         //affectedRows: 1, fieldCount: 0, info: "", insertId: 1, serverStatus: 2, warningStatus: 0
+
         if (result.data.affectedRows) {
             setTagColor('');
             setTagTitle('');
             showMessage('정상적으로 저장하였습니다.');
             setTagAdding(false);
+            tagsLoad();
         } else {
-            showMessage('데이터를 저장하지 못했습니다.', 'danger');
+            showMessage('데이터를 저장하지 못했습니다.', 'error');
             setTagAdding(false);
         }
     };
+    const tagUpdate = async (event: any) => {
+        const code = event.currentTarget.dataset.code;
+        const index = tagsList.findIndex(tag => tag.code === code);
+        const tagColor = tagsList[index].color;
+        const tagTitle = tagsList[index].title;
+
+        const axiosData = { module: 'tagUpdate', code: code, color: tagColor, title: tagTitle };
+        const result = await axios.post('/api/tags', axiosData);
+        //console.log(result.data);
+
+        if (result.data.affectedRows) {
+            showMessage('정상적으로 저장하였습니다.');
+            tagsLoad();
+        } else {
+            showMessage('데이터를 저장하지 못했습니다.', 'error');
+        }
+    };
+    const tagDelete = async (event: any) => {
+        const code = event.currentTarget.dataset.code;
+
+        Swal.fire({
+            title: '정말 삭제 하시겠습니까?',
+            text: '삭제된 데이터는 복구가 불가능합니다.',
+            icon: 'error',//sucess, error, warning, info, question
+            showCancelButton: true,
+            confirmButtonColor: '#e7515a',
+            confirmButtonText: '삭제',
+            cancelButtonText: '취소',
+        }).then(async result => {
+            if (result.isConfirmed) {
+                const axiosData = { module: 'tagDelete', code: code };
+                const result = await axios.post('/api/tags', axiosData);
+                //console.log(result.data);
+
+                if (result.data.affectedRows) {
+                    showMessage('정상적으로 삭제하였습니다.');
+                    tagsLoad();
+                } else {
+                    showMessage('데이터를 삭제하지 못했습니다.', 'error');
+                }
+            }
+        });
+    };
+    interface Tag {
+        code: string,
+        color: string,
+        title: string
+    }
+
+    const [tagsList, setTagsList] = useState<Tag[]>([]);
+    const tagsLoad = async () => {
+        const axiosData = { module: 'tagsLoad', category: 'note', user: 'TEST' };
+        const result = await axios.post('/api/tags', axiosData);
+        setTagsList(result.data);
+        console.log(result.data);
+    };
+    const tagColorChange2 = (code: string, event: any) => {
+        let cloneTagList = [...tagsList];
+        const value = event.currentTarget.value;
+        const index = cloneTagList.findIndex(tag => tag.code === code);
+        //console.log(code, value, index);
+
+        cloneTagList[index].color = value;
+        setTagsList(cloneTagList);
+        //console.log(cloneTagList);
+    };
+    const tagTitleChange2 = (code: string, event: any) => {
+        let cloneTagList = [...tagsList];
+        const value = event.currentTarget.value;
+        const index = cloneTagList.findIndex(tag => tag.code === code);
+        //console.log(code, value, index);
+
+        cloneTagList[index].title = value;
+        setTagsList(cloneTagList);
+        //console.log(cloneTagList);
+    };
+    const tagsSort = async (event: any) => {
+        const obj = Array.from(event.to.children);
+        let tagsIdList: string[] = [];
+        
+        obj.map((item: any) => {
+            tagsIdList.push(item.dataset.id);
+        });
+
+        //console.log(tagsIdList);
+
+        const axiosData = { module: 'tagsSort', tagsIdList: tagsIdList };
+        const result = await axios.post('/api/tags', axiosData);
+        let errorCount = 0;
+        //console.log(result.data);
+
+        result.data.map((item: any) => {
+            if (!item.affectedRows) {
+                errorCount++;
+            }
+        });
+
+        if (errorCount) {
+            showMessage(`데이터를 ${errorCount} 건 저장하지 못했습니다.`, 'error');//sucess, error, warning, info, question
+        }
+    };
+
+    interface Note {
+        code: string,
+        tag: string,
+        color: string,
+        title: string,
+        description: string,
+        alram: boolean,
+        alramDateTime: string,
+        created: string,
+    }
 
     return (
         <div>
@@ -526,7 +627,7 @@ const Notes = () => {
                                         </div>
                                     </div>
                                     <Transition appear show={tagsModal} as={Fragment}>
-                                        <Dialog as="div" open={tagsModal} onClose={() => setTagsModal(true)}>
+                                        <Dialog as="div" open={tagsModal} initialFocus={tagTitleRef} onClose={() => setTagsModal(true)}>
                                             <Transition.Child
                                                 as={Fragment}
                                                 enter="ease-out duration-300"
@@ -570,11 +671,8 @@ const Notes = () => {
                                                                                 <option value="success" className="bg-success text-white">Success</option>
                                                                                 <option value="warning" className="bg-warning text-white">Warning</option>
                                                                                 <option value="danger" className="bg-danger text-white">Danger</option>
-                                                                                <option value="secondry" className="bg-secondary text-white">secondary</option>
-                                                                                <option value="dark" className="bg-dark text-white">Dark</option>
-                                                                                <option value="black" className="bg-black text-white">Black</option>
                                                                             </select>
-                                                                            <input type="text" value={tagTitle} onChange={tagTitleChange} placeholder="Tag" minLength={3} className="form-input ltr:rounded-r-none rtl:rounded-l-none ltr:rounded-l-none rtl:rounded-r-none" required />
+                                                                            <input type="text" ref={tagTitleRef} value={tagTitle} onChange={tagTitleChange} placeholder="Tag" minLength={3} className="form-input ltr:rounded-r-none rtl:rounded-l-none ltr:rounded-l-none rtl:rounded-r-none" required />
                                                                             <button type="submit" className="btn btn-primary ltr:rounded-l-none rtl:rounded-r-none">
                                                                                 {tagAdding === false ? <BsPlus /> : <FiLoader className="animate-ping" />}
                                                                             </button>
@@ -583,8 +681,8 @@ const Notes = () => {
                                                                 </div>
                                                                 <div className="my-5">
                                                                     <ul>
-                                                                        <ReactSortable list={tagsList} setList={setTagsList} animation={200} handle=".handle" group="handler" ghostClass="gu-transit">
-                                                                            {tagsList.map((item: any) => {
+                                                                        <ReactSortable list={tagsList} setList={setTagsList} onChange={tagsSort} animation={200} handle=".handle" group="handler" ghostClass="gu-transit">
+                                                                            {tagsList.map((item: any, index) => {
                                                                                 return (
                                                                                     <li key={item.code} className="mb-2.5">
                                                                                         <div className="flex">
@@ -595,15 +693,12 @@ const Notes = () => {
                                                                                                 <option value="success" className="bg-success text-white">Success</option>
                                                                                                 <option value="warning" className="bg-warning text-white">Warning</option>
                                                                                                 <option value="danger" className="bg-danger text-white">Danger</option>
-                                                                                                <option value="secondry" className="bg-secondary text-white">secondary</option>
-                                                                                                <option value="dark" className="bg-dark text-white">Dark</option>
-                                                                                                <option value="black" className="bg-black text-white">Black</option>
                                                                                             </select>
                                                                                             <input type="text" value={item.title} onChange={(event) => tagTitleChange2(item.code, event)} placeholder="Tag" minLength={3} className="form-input ltr:rounded-r-none rtl:rounded-l-none ltr:rounded-l-none rtl:rounded-r-none" required />
-                                                                                            <button type="button" className="btn btn-primary rounded-l-none rounded-r-none">
+                                                                                            <button type="button" onClick={tagUpdate} data-code={item.code} className="btn btn-primary rounded-l-none rounded-r-none">
                                                                                                 <BsCheckLg />
                                                                                             </button>
-                                                                                            <button type="button" className="btn btn-danger rounded-l-none rounded-r-none">
+                                                                                            <button type="button" onClick={tagDelete} data-code={item.code} className="btn btn-danger rounded-l-none rounded-r-none">
                                                                                                 <BsTrash />
                                                                                             </button>
                                                                                             <button type="button" className="handle cursor-move btn btn-dark ltr:rounded-l-none rtl:rounded-r-none">
@@ -624,80 +719,34 @@ const Notes = () => {
                                         </Dialog>
                                     </Transition>
                                 </div>
-                                <button
-                                    type="button"
-                                    className={`flex h-10 w-full items-center rounded-md p-1 font-medium text-primary duration-300 hover:bg-white-dark/10 ltr:hover:pl-3 rtl:hover:pr-3 dark:hover:bg-[#181F32] ${
-                                        selectedTab === 'personal' && 'bg-gray-100 ltr:pl-3 rtl:pr-3 dark:bg-[#181F32]'
-                                    }`}
-                                    onClick={() => tabChanged('personal')}
-                                >
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 rotate-45 fill-primary">
-                                        <path
-                                            d="M2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C22 4.92893 22 7.28595 22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12Z"
-                                            stroke="currentColor"
-                                            strokeWidth="1.5"
-                                        ></path>
-                                    </svg>
-                                    <div className="ltr:ml-3 rtl:mr-3">Personal</div>
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`flex h-10 w-full items-center rounded-md p-1 font-medium text-warning duration-300 hover:bg-white-dark/10 ltr:hover:pl-3 rtl:hover:pr-3 dark:hover:bg-[#181F32] ${
-                                        selectedTab === 'work' && 'bg-gray-100 ltr:pl-3 rtl:pr-3 dark:bg-[#181F32]'
-                                    }`}
-                                    onClick={() => tabChanged('work')}
-                                >
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 rotate-45 fill-warning">
-                                        <path
-                                            d="M2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C22 4.92893 22 7.28595 22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12Z"
-                                            stroke="currentColor"
-                                            strokeWidth="1.5"
-                                        ></path>
-                                    </svg>
-                                    <div className="ltr:ml-3 rtl:mr-3">Work</div>
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`flex h-10 w-full items-center rounded-md p-1 font-medium text-info duration-300 hover:bg-white-dark/10 ltr:hover:pl-3 rtl:hover:pr-3 dark:hover:bg-[#181F32] ${
-                                        selectedTab === 'social' && 'bg-gray-100 ltr:pl-3 rtl:pr-3 dark:bg-[#181F32]'
-                                    }`}
-                                    onClick={() => tabChanged('social')}
-                                >
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 rotate-45 fill-info">
-                                        <path
-                                            d="M2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C22 4.92893 22 7.28595 22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12Z"
-                                            stroke="currentColor"
-                                            strokeWidth="1.5"
-                                        ></path>
-                                    </svg>
-                                    <div className="ltr:ml-3 rtl:mr-3">Social</div>
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`flex h-10 w-full items-center rounded-md p-1 font-medium text-danger duration-300 hover:bg-white-dark/10 ltr:hover:pl-3 rtl:hover:pr-3 dark:hover:bg-[#181F32] ${
-                                        selectedTab === 'important' && 'bg-gray-100 ltr:pl-3 rtl:pr-3 dark:bg-[#181F32]'
-                                    }`}
-                                    onClick={() => tabChanged('important')}
-                                >
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 rotate-45 fill-danger">
-                                        <path
-                                            d="M2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C22 4.92893 22 7.28595 22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12Z"
-                                            stroke="currentColor"
-                                            strokeWidth="1.5"
-                                        ></path>
-                                    </svg>
-                                    <div className="ltr:ml-3 rtl:mr-3">Important</div>
-                                </button>
+
+                                {tagsList.map((item: any) => {
+                                    return (
+                                        <button
+                                            key={item.code}
+                                            type="button"
+                                            className=
+                                            {`flex h-10 w-full items-center rounded-md p-1 font-medium text-${item.color} duration-300 hover:bg-white-dark/10 ltr:hover:pl-3 rtl:hover:pr-3 dark:hover:bg-[#181F32] ${
+                                                selectedTab === '${item.title}' && 'bg-gray-100 ltr:pl-3 rtl:pr-3 dark:bg-[#181F32]'
+                                            }`}
+                                            onClick={() => tabChanged(`${item.title}`)}
+                                        >
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 rotate-45 fill-${item.color}`}>
+                                                <path
+                                                    d="M2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C22 4.92893 22 7.28595 22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12Z"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.5"
+                                                ></path>
+                                            </svg>
+                                            <div className="ltr:ml-3 rtl:mr-3">{item.title}</div>
+                                        </button>
+                                    );
+                                })}
+
                             </div>
                         </PerfectScrollbar>
                     </div>
                     <div className="absolute bottom-0 w-full p-4 ltr:left-0 rtl:right-0">
-                        <button className="btn btn-success w-full" type="button" style={{marginBottom:20}} onClick={(e) => {
-                                test(e);
-                            }}>
-                            <span className="loaderSpan"></span>
-                            TEST
-                        </button>
                         <button className="btn btn-primary w-full" type="button" onClick={() => editNote()}>
                             <svg className="h-5 w-5 ltr:mr-2 rtl:ml-2" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>

@@ -10,7 +10,8 @@ try {
         port: process.env.DB_PORT,
         database: process.env.DB_NAME,
         charset: process.env.DB_CHARSET,
-        timezone: process.env.DB_TIMEZONE
+        timezone: process.env.DB_TIMEZONE,
+        multipleStatements: true
     });
 } catch (err) {
     console.error(err);

@@ -33,7 +33,7 @@ const App = ({ Component, pageProps }: AppPropsWithLayout) => {
                 <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <meta name="description" content="Simple Note App" />
-                <link rel="icon" href="/favicon.png" />
+                <link rel="icon" href="/assets/images/ProNoteLogo.png" />
             </Head>
 
             {getLayout(<Component {...pageProps} />)}
