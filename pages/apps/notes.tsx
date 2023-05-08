@@ -8,322 +8,73 @@ import Dropdown from '../../components/Dropdown';
 import { setPageTitle } from '../../store/themeConfigSlice';
 import axios from 'axios';
 import moment from 'moment';
-import { BsGear, BsPlus, BsArrowDownUp, BsCheckLg, BsTrash } from 'react-icons/bs';
+import { BsGear, BsPlus, BsArrowDownUp, BsCheckLg, BsTrash, BsCheck2All } from 'react-icons/bs';
 import { FiLoader } from 'react-icons/fi';
 import { ReactSortable } from 'react-sortablejs';
 import React from 'react';
-import { string } from 'yup';
+import 'react-quill/dist/quill.snow.css';
+import dynamic from 'next/dynamic';
+const ReactQuill = dynamic(import('react-quill'), { ssr: false });
 
 const Notes = () => {
     const dispatch = useDispatch();
     useEffect(() => {
         dispatch(setPageTitle('Notes'));
     });
-    const [notesList, setNoteList] = useState([
-        {
-            id: 1,
-            user: 'Max Smith',
-            thumb: 'profile-16.jpeg',
-            title: 'Meeting with Kelly',
-            description: 'Curabitur facilisis vel elit sed dapibus sodales purus rhoncus.',
-            date: '11/01/2020',
-            isFav: false,
-            tag: 'personal',
-        },
-        {
-            id: 2,
-            user: 'John Doe',
-            thumb: 'profile-14.jpeg',
-            title: 'Receive Package',
-            description: 'Facilisis curabitur facilisis vel elit sed dapibus sodales purus.',
-            date: '11/02/2020',
-            isFav: true,
-            tag: '',
-        },
-        {
-            id: 3,
-            user: 'Kia Jain',
-            thumb: 'profile-15.jpeg',
-            title: 'Download Docs',
-            description: 'Proin a dui malesuada, laoreet mi vel, imperdiet diam quam laoreet.',
-            date: '11/04/2020',
-            isFav: false,
-            tag: 'Work',
-        },
-        {
-            id: 4,
-            user: 'Max Smith',
-            thumb: 'profile-16.jpeg',
-            title: 'Meeting at 4:50pm',
-            description: 'Excepteur sint occaecat cupidatat non proident, anim id est laborum.',
-            date: '11/08/2020',
-            isFav: false,
-            tag: '',
-        },
-        {
-            id: 5,
-            user: 'Karena Courtliff',
-            thumb: 'profile-17.jpeg',
-            title: 'Backup Files EOD',
-            description: 'Maecenas condimentum neque mollis, egestas leo ut, gravida.',
-            date: '11/09/2020',
-            isFav: false,
-            tag: '',
-        },
-        {
-            id: 6,
-            user: 'Max Smith',
-            thumb: 'profile-16.jpeg',
-            title: 'Download Server Logs',
-            description: 'Suspendisse efficitur diam quis gravida. Nunc molestie est eros.',
-            date: '11/09/2020',
-            isFav: false,
-            tag: 'social',
-        },
-        {
-            id: 7,
-            user: 'Vladamir Koschek',
-            thumb: '',
-            title: 'Team meet at Starbucks',
-            description: 'Etiam a odio eget enim aliquet laoreet lobortis sed ornare nibh.',
-            date: '11/10/2020',
-            isFav: false,
-            tag: '',
-        },
-        {
-            id: 8,
-            user: 'Max Smith',
-            thumb: 'profile-16.jpeg',
-            title: 'Create new users Profile',
-            description: 'Duis aute irure in nulla pariatur. Etiam a odio eget enim aliquet.',
-            date: '11/11/2020',
-            isFav: false,
-            tag: 'important',
-        },
-        {
-            id: 9,
-            user: 'Robert Garcia',
-            thumb: 'profile-21.jpeg',
-            title: 'Create a compost pile',
-            description: 'Zombie ipsum reversus ab viral inferno, nam rick grimes malum cerebro.',
-            date: '11/12/2020',
-            isFav: true,
-            tag: '',
-        },
-        {
-            id: 10,
-            user: 'Marie Hamilton',
-            thumb: 'profile-2.jpeg',
-            title: 'Take a hike at a local park',
-            description: 'De carne lumbering animata corpora quaeritis. Summus brains sit',
-            date: '11/13/2020',
-            isFav: true,
-            tag: '',
-        },
-        {
-            id: 11,
-            user: 'Megan Meyers',
-            thumb: 'profile-1.jpeg',
-            title: 'Take a class at local community center that interests you',
-            description: 'Cupcake ipsum dolor. Sit amet marshmallow topping cheesecake muffin.',
-            date: '11/13/2020',
-            isFav: false,
-            tag: '',
-        },
-        {
-            id: 12,
-            user: 'Angela Hull',
-            thumb: 'profile-22.jpeg',
-            title: 'Research a topic interested in',
-            description: 'Lemon drops tootsie roll marshmallow halvah carrot cake.',
-            date: '11/14/2020',
-            isFav: false,
-            tag: '',
-        },
-        {
-            id: 13,
-            user: 'Karen Wolf',
-            thumb: 'profile-23.jpeg',
-            title: 'Plan a trip to another country',
-            description: 'Space, the final frontier. These are the voyages of the Starship Enterprise.',
-            date: '11/16/2020',
-            isFav: true,
-            tag: '',
-        },
-        {
-            id: 14,
-            user: 'Jasmine Barnes',
-            thumb: 'profile-1.jpeg',
-            title: 'Improve touch typing',
-            description: 'Well, the way they make shows is, they make one show.',
-            date: '11/16/2020',
-            isFav: false,
-            tag: '',
-        },
-        {
-            id: 15,
-            user: 'Thomas Cox',
-            thumb: 'profile-11.jpeg',
-            title: 'Learn Express.js',
-            description: 'Bulbasaur Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-            date: '11/17/2020',
-            isFav: false,
-            tag: 'Work',
-        },
-        {
-            id: 16,
-            user: 'Marcus Jones',
-            thumb: 'profile-12.jpeg',
-            title: 'Learn calligraphy',
-            description: 'Ivysaur Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-            date: '11/17/2020',
-            isFav: false,
-            tag: '',
-        },
-        {
-            id: 17,
-            user: 'Matthew Gray',
-            thumb: 'profile-24.jpeg',
-            title: 'Have a photo session with some friends',
-            description: 'Venusaur Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-            date: '11/18/2020',
-            isFav: false,
-            tag: 'important',
-        },
-        {
-            id: 18,
-            user: 'Chad Davis',
-            thumb: 'profile-31.jpeg',
-            title: 'Go to the gym',
-            description: 'Charmander Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-            date: '11/18/2020',
-            isFav: false,
-            tag: '',
-        },
-        {
-            id: 19,
-            user: 'Linda Drake',
-            thumb: 'profile-23.jpeg',
-            title: 'Make own LEGO creation',
-            description: 'Charmeleon Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-            date: '11/18/2020',
-            isFav: false,
-            tag: 'social',
-        },
-        {
-            id: 20,
-            user: 'Kathleen Flores',
-            thumb: 'profile-34.jpeg',
-            title: 'Take cat on a walk',
-            description: 'Baseball ipsum dolor sit amet cellar rubber win hack tossed. ',
-            date: '11/18/2020',
-            isFav: false,
-            tag: 'personal',
-        },
-    ]);
 
+    interface Note {
+        id: string,
+        tags: string,
+        title: string,
+        description: string,
+        user: string,
+        created: string
+    }
+    
+    const [notesList, setNotesList] = useState<Note[]>([]);
     const defaultParams = {
-        id: null,
+        id: '',
+        tags: '',
         title: '',
-        description: '',
-        tag: '',
-        user: '',
-        thumb: '',
+        description: ''
     };
-    const [params, setParams] = useState<any>(JSON.parse(JSON.stringify(defaultParams)));
-    const [addContactModal, setAddContactModal] = useState<any>(false);
-    const [isDeleteNoteModal, setIsDeleteNoteModal] = useState<any>(false);
-    const [isShowNoteMenu, setIsShowNoteMenu] = useState<any>(false);
-    const [isViewNoteModal, setIsViewNoteModal] = useState<any>(false);
-    const [filterdNotesList, setFilterdNotesList] = useState<any>([]);
-    const [selectedTab, setSelectedTab] = useState<any>('all');
-    const [deletedNote, setDeletedNote] = useState<any>(null);
+    //const [params, setParams] = useState<any>(JSON.parse(JSON.stringify(defaultParams)));
+    const [params, setParams] = useState<Note>(defaultParams);
+    const [noteUpdateModal, setNoteUpdateModal] = useState(false);
+    const [isShowNoteMenu, setIsShowNoteMenu] = useState(false);
+    const [isViewNoteModal, setIsViewNoteModal] = useState(false);
+    const [filterdNotesList, setFilterdNotesList] = useState<Note[]>([]);
+    const [filterTags, setFilterTags] = useState('');
 
     const searchNotes = () => {
-        if (selectedTab !== 'fav') {
-            if (selectedTab !== 'all' || selectedTab === 'delete') {
-                setFilterdNotesList(notesList.filter((d) => d.tag === selectedTab));
-            } else {
-                setFilterdNotesList(notesList);
-            }
+        if (filterTags) {
+            setFilterdNotesList(notesList.filter((item) => item.tags === filterTags));
         } else {
-            setFilterdNotesList(notesList.filter((d) => d.isFav));
+            setFilterdNotesList(notesList);
         }
     };
 
     const saveNote = () => {
         if (!params.title) {
-            showMessage('Title is required.', 'error');
+            showMessage('제목을 입력해 주십시오.', 'error');
             return false;
         }
-        if (params.id) {
-            //update task
-            let note: any = notesList.find((d: any) => d.id === params.id);
-            note.title = params.title;
-            note.user = params.user;
-            note.description = params.description;
-            note.tag = params.tag;
-        } else {
-            //add note
-            let maxNoteId = notesList.reduce((max: any, character: any) => (character.id > max ? character.id : max), notesList[0].id);
-            if (!maxNoteId) {
-                maxNoteId = 0;
-            }
-            let dt = new Date();
-            let note = {
-                id: maxNoteId + 1,
-                title: params.title,
-                user: params.user,
-                thumb: 'profile-21.jpeg',
-                description: params.description,
-                date: dt.getDate() + '/' + Number(dt.getMonth()) + 1 + '/' + dt.getFullYear(),
-                isFav: false,
-                tag: params.tag,
-            };
 
-            notesList.splice(0, 0, note);
-            searchNotes();
-        }
         showMessage('Note has been saved successfully.');
-        setAddContactModal(false);
+        setNoteUpdateModal(false);
+        setFilterTags('');
         searchNotes();
     };
 
-    const tabChanged = (type: string) => {
-        setSelectedTab(type);
+    const tabChanged = (tags: string) => {
+        setFilterTags(tags);
         setIsShowNoteMenu(false);
         searchNotes();
-    };
-
-    const setFav = (note: any) => {
-        let list = filterdNotesList;
-        let item = list.find((d: any) => d.id === note.id);
-        item.isFav = !item.isFav;
-
-        setFilterdNotesList([...list]);
-        if (selectedTab !== 'all' || selectedTab === 'delete') {
-            searchNotes();
-        }
-    };
-
-    const setTag = (note: any, name: string = '') => {
-        let list = filterdNotesList;
-        let item = filterdNotesList.find((d: any) => d.id === note.id);
-        item.tag = name;
-        setFilterdNotesList([...list]);
-        if (selectedTab !== 'all' || selectedTab === 'delete') {
-            searchNotes();
-        }
     };
 
     const changeValue = (e: any) => {
         const { value, id } = e.target;
         setParams({ ...params, [id]: value });
-    };
-
-    const deleteNoteConfirm = (note: any) => {
-        setDeletedNote(note);
-        setIsDeleteNoteModal(true);
     };
 
     const viewNote = (note: any) => {
@@ -339,15 +90,12 @@ const Notes = () => {
             let json1 = JSON.parse(JSON.stringify(note));
             setParams(json1);
         }
-        setAddContactModal(true);
+        setNoteUpdateModal(true);
     };
-
-    const deleteNote = () => {
-        setNoteList(notesList.filter((d: any) => d.id !== deletedNote.id));
+    
+    useEffect(() => {
         searchNotes();
-        showMessage('Note has been deleted successfully.');
-        setIsDeleteNoteModal(false);
-    };
+    }, [filterTags, notesList]);
 
     const showMessage = (msg = '', type = 'success') => {
         const toast: any = Swal.mixin({
@@ -365,11 +113,13 @@ const Notes = () => {
         });
     };
 
-    useEffect(() => {
-        searchNotes();
-    }, [selectedTab, notesList]);
-
     const isRtl = useSelector((state: IRootState) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
+
+    interface Tag {
+        id: string,
+        color: string,
+        title: string
+    }
 
     let tagTitleRef = useRef(null);
     const [tagsModal, setTagsModal] = useState(false);
@@ -413,12 +163,12 @@ const Notes = () => {
         }
     };
     const tagUpdate = async (event: any) => {
-        const code = event.currentTarget.dataset.code;
-        const index = tagsList.findIndex(tag => tag.code === code);
+        const id = event.currentTarget.dataset.id;
+        const index = tagsList.findIndex(tag => tag.id === id);
         const tagColor = tagsList[index].color;
         const tagTitle = tagsList[index].title;
 
-        const axiosData = { module: 'tagUpdate', code: code, color: tagColor, title: tagTitle };
+        const axiosData = { module: 'tagUpdate', id: id, color: tagColor, title: tagTitle };
         const result = await axios.post('/api/tags', axiosData);
         //console.log(result.data);
 
@@ -430,7 +180,7 @@ const Notes = () => {
         }
     };
     const tagDelete = async (event: any) => {
-        const code = event.currentTarget.dataset.code;
+        const id = event.currentTarget.dataset.id;
 
         Swal.fire({
             title: '정말 삭제 하시겠습니까?',
@@ -442,7 +192,7 @@ const Notes = () => {
             cancelButtonText: '취소',
         }).then(async result => {
             if (result.isConfirmed) {
-                const axiosData = { module: 'tagDelete', code: code };
+                const axiosData = { module: 'tagDelete', id: id };
                 const result = await axios.post('/api/tags', axiosData);
                 //console.log(result.data);
 
@@ -455,34 +205,63 @@ const Notes = () => {
             }
         });
     };
-    interface Tag {
-        code: string,
-        color: string,
-        title: string
-    }
 
     const [tagsList, setTagsList] = useState<Tag[]>([]);
+    const truncateTags = async () => {
+        Swal.fire({
+            title: '정말 초기화 하시겠습니까?',
+            text: '초기화된 데이터는 복구가 불가능합니다.',
+            icon: 'error',//sucess, error, warning, info, question
+            showCancelButton: true,
+            confirmButtonColor: '#e7515a',
+            confirmButtonText: '초기화',
+            cancelButtonText: '취소',
+        }).then(async result => {
+            if (result.isConfirmed) {
+                const axiosData = { module: 'truncateTags' };
+                const result = await axios.post('/api/tags', axiosData);
+                console.log(result.data);
+
+                let errorCount = 0;
+                //console.log(result.data);
+
+                result.data.map((item: any) => {
+                    if (item.warningStatus) {
+                        errorCount++;
+                    }
+                });
+
+                if (errorCount) {
+                    showMessage(`초기화 쿼리 중 ${errorCount} 건 실패했습니다.`, 'error');//sucess, error, warning, info, question
+                } else {
+                    showMessage(`정상적으로 초기화 하였습니다.`, 'sucess');//sucess, error, warning, info, question
+                }
+
+                tagsLoad();
+            }
+        });
+    };
     const tagsLoad = async () => {
         const axiosData = { module: 'tagsLoad', category: 'note', user: 'TEST' };
         const result = await axios.post('/api/tags', axiosData);
         setTagsList(result.data);
         console.log(result.data);
     };
-    const tagColorChange2 = (code: string, event: any) => {
+    const tagColorChange2 = (id: string, event: any) => {
         let cloneTagList = [...tagsList];
         const value = event.currentTarget.value;
-        const index = cloneTagList.findIndex(tag => tag.code === code);
-        //console.log(code, value, index);
+        const index = cloneTagList.findIndex(tag => tag.id === id);
+        //console.log(id, value, index);
 
         cloneTagList[index].color = value;
         setTagsList(cloneTagList);
         //console.log(cloneTagList);
     };
-    const tagTitleChange2 = (code: string, event: any) => {
+    const tagTitleChange2 = (id: string, event: any) => {
         let cloneTagList = [...tagsList];
         const value = event.currentTarget.value;
-        const index = cloneTagList.findIndex(tag => tag.code === code);
-        //console.log(code, value, index);
+        const index = cloneTagList.findIndex(tag => tag.id === id);
+        //console.log(id, value, index);
 
         cloneTagList[index].title = value;
         setTagsList(cloneTagList);
@@ -514,16 +293,133 @@ const Notes = () => {
         }
     };
 
-    interface Note {
-        code: string,
-        tag: string,
-        color: string,
-        title: string,
-        description: string,
-        alram: boolean,
-        alramDateTime: string,
-        created: string,
-    }
+    
+
+    let noteTitleRef = useRef(null);
+    const [noteModal, setNoteModal] = useState(false);
+    const [noteUpdating, setNoteUpdating] = useState(false);
+    const [noteTag, setNoteTag] = useState('');
+    const [noteTitle, setNoteTitle] = useState('');
+    const [description, setDescription] = useState('');
+    /*useEffect(() => {
+        if (tagsModal === false) {
+            notesLoad();
+        }
+    }, [noteModal]);*/
+    const truncateNotes = async () => {
+        Swal.fire({
+            title: '정말 초기화 하시겠습니까?',
+            text: '초기화된 데이터는 복구가 불가능합니다.',
+            icon: 'error',//sucess, error, warning, info, question
+            showCancelButton: true,
+            confirmButtonColor: '#e7515a',
+            confirmButtonText: '초기화',
+            cancelButtonText: '취소',
+        }).then(async result => {
+            if (result.isConfirmed) {
+                const axiosData = { module: 'truncateNotes' };
+                const result = await axios.post('/api/notes', axiosData);
+                console.log(result.data);
+
+                let errorCount = 0;
+                //console.log(result.data);
+
+                result.data.map((item: any) => {
+                    if (item.warningStatus) {
+                        errorCount++;
+                    }
+                });
+
+                if (errorCount) {
+                    showMessage(`초기화 쿼리 중 ${errorCount} 건 실패했습니다.`, 'error');//sucess, error, warning, info, question
+                } else {
+                    showMessage(`정상적으로 초기화 하였습니다.`, 'sucess');//sucess, error, warning, info, question
+                }
+            }
+        });
+    };
+    /*const noteTagChange = (event: any) => {
+        const value = event.currentTarget.value;
+        setNoteTag(value);
+        //console.log(value);
+    };
+    const noteTitleChange = (event: any) => {
+        const value = event.currentTarget.value;
+        setNoteTitle(value);
+        //console.log(value);
+    };*/
+    const noteUpdate = async (event: any) => {
+        event.preventDefault();
+
+        /*setNoteUpdate(true);
+        const seq = tagsList.length;
+        const axiosData = { module: 'tagAdd', category: 'note', user: 'TEST', color: tagColor, title: tagTitle, seq: seq };
+        const result = await axios.post('/api/notes', axiosData);
+        //console.log(result.data);
+        //affectedRows: 1, fieldCount: 0, info: "", insertId: 1, serverStatus: 2, warningStatus: 0
+
+        if (result.data.affectedRows) {
+            setNoteTag('');
+            setNoteTitle('');
+            showMessage('정상적으로 저장하였습니다.');
+            setNoteAdding(false);
+            notesLoad();
+        } else {
+            showMessage('데이터를 저장하지 못했습니다.', 'error');
+            setNoteAdding(false);
+        }*/
+    };
+    /*const noteUpdate = async (event: any) => {
+        const id = event.currentTarget.dataset.id;
+        const index = tagsList.findIndex(tag => tag.id === id);
+        const tagColor = tagsList[index].color;
+        const tagTitle = tagsList[index].title;
+
+        const axiosData = { module: 'tagUpdate', id: id, color: tagColor, title: tagTitle };
+        const result = await axios.post('/api/notes', axiosData);
+        //console.log(result.data);
+
+        if (result.data.affectedRows) {
+            showMessage('정상적으로 저장하였습니다.');
+            tagsLoad();
+        } else {
+            showMessage('데이터를 저장하지 못했습니다.', 'error');
+        }
+    };
+    const noteDelete = async (event: any) => {
+        const id = event.currentTarget.dataset.id;
+
+        Swal.fire({
+            title: '정말 삭제 하시겠습니까?',
+            text: '삭제된 데이터는 복구가 불가능합니다.',
+            icon: 'error',//sucess, error, warning, info, question
+            showCancelButton: true,
+            confirmButtonColor: '#e7515a',
+            confirmButtonText: '삭제',
+            cancelButtonText: '취소',
+        }).then(async result => {
+            if (result.isConfirmed) {
+                const axiosData = { module: 'notegDelete', id: id };
+                const result = await axios.post('/api/notes', axiosData);
+                //console.log(result.data);
+
+                if (result.data.affectedRows) {
+                    showMessage('정상적으로 삭제하였습니다.');
+                    tagsLoad();
+                } else {
+                    showMessage('데이터를 삭제하지 못했습니다.', 'error');
+                }
+            }
+        });
+    };
+
+    const [notesList, setNotesList] = useState<Note[]>([]);
+    const notesLoad = async () => {
+        const axiosData = { module: 'notesLoad', user: 'TEST' };
+        const result = await axios.post('/api/notes', axiosData);
+        setNotesList(result.data);
+        console.log(result.data);
+    };*/
 
     return (
         <div>
@@ -568,185 +464,148 @@ const Notes = () => {
                             <h3 className="text-lg font-semibold ltr:ml-3 rtl:mr-3">Notes</h3>
                         </div>
 
-                        <div className="my-4 h-px w-full border-b border-white-light dark:border-[#1b2e4b]"></div>
+                        <div className="my-4 h-px w-full border-b border-white-light dark:border-[#1b2e4b] mb-3"></div>
+
                         <PerfectScrollbar className="relative -mr-3.5 h-full grow pr-3.5">
-                            <div className="space-y-1">
-                                <button
-                                    type="button"
-                                    className={`flex h-10 w-full items-center justify-between rounded-md p-2 font-medium hover:bg-white-dark/10 hover:text-primary dark:hover:bg-[#181F32] dark:hover:text-primary ${
-                                        selectedTab === 'all' && 'bg-gray-100 text-primary dark:bg-[#181F32] dark:text-primary'
-                                    }`}
-                                    onClick={() => tabChanged('all')}
-                                >
-                                    <div className="flex items-center">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5">
-                                            <path
-                                                d="M18.18 8.03933L18.6435 7.57589C19.4113 6.80804 20.6563 6.80804 21.4241 7.57589C22.192 8.34374 22.192 9.58868 21.4241 10.3565L20.9607 10.82M18.18 8.03933C18.18 8.03933 18.238 9.02414 19.1069 9.89309C19.9759 10.762 20.9607 10.82 20.9607 10.82M18.18 8.03933L13.9194 12.2999C13.6308 12.5885 13.4865 12.7328 13.3624 12.8919C13.2161 13.0796 13.0906 13.2827 12.9882 13.4975C12.9014 13.6797 12.8368 13.8732 12.7078 14.2604L12.2946 15.5L12.1609 15.901M20.9607 10.82L16.7001 15.0806C16.4115 15.3692 16.2672 15.5135 16.1081 15.6376C15.9204 15.7839 15.7173 15.9094 15.5025 16.0118C15.3203 16.0986 15.1268 16.1632 14.7396 16.2922L13.5 16.7054L13.099 16.8391M13.099 16.8391L12.6979 16.9728C12.5074 17.0363 12.2973 16.9867 12.1553 16.8447C12.0133 16.7027 11.9637 16.4926 12.0272 16.3021L12.1609 15.901M13.099 16.8391L12.1609 15.901"
-                                                stroke="currentColor"
-                                                strokeWidth="1.5"
-                                            />
-                                            <path d="M8 13H10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                                            <path d="M8 9H14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                                            <path d="M8 17H9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                                            <path
-                                                opacity="0.5"
-                                                d="M3 10C3 6.22876 3 4.34315 4.17157 3.17157C5.34315 2 7.22876 2 11 2H13C16.7712 2 18.6569 2 19.8284 3.17157C21 4.34315 21 6.22876 21 10V14C21 17.7712 21 19.6569 19.8284 20.8284C18.6569 22 16.7712 22 13 22H11C7.22876 22 5.34315 22 4.17157 20.8284C3 19.6569 3 17.7712 3 14V10Z"
-                                                stroke="currentColor"
-                                                strokeWidth="1.5"
-                                            />
-                                        </svg>
-                                        <div className="ltr:ml-3 rtl:mr-3">All Notes</div>
-                                    </div>
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`flex h-10 w-full items-center justify-between rounded-md p-2 font-medium hover:bg-white-dark/10 hover:text-primary dark:hover:bg-[#181F32] dark:hover:text-primary ${
-                                        selectedTab === 'fav' && 'bg-gray-100 text-primary dark:bg-[#181F32] dark:text-primary'
-                                    }`}
-                                    onClick={() => tabChanged('fav')}
-                                >
-                                    <div className="flex items-center">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path
-                                                d="M9.15316 5.40838C10.4198 3.13613 11.0531 2 12 2C12.9469 2 13.5802 3.13612 14.8468 5.40837L15.1745 5.99623C15.5345 6.64193 15.7144 6.96479 15.9951 7.17781C16.2757 7.39083 16.6251 7.4699 17.3241 7.62805L17.9605 7.77203C20.4201 8.32856 21.65 8.60682 21.9426 9.54773C22.2352 10.4886 21.3968 11.4691 19.7199 13.4299L19.2861 13.9372C18.8096 14.4944 18.5713 14.773 18.4641 15.1177C18.357 15.4624 18.393 15.8341 18.465 16.5776L18.5306 17.2544C18.7841 19.8706 18.9109 21.1787 18.1449 21.7602C17.3788 22.3417 16.2273 21.8115 13.9243 20.7512L13.3285 20.4768C12.6741 20.1755 12.3469 20.0248 12 20.0248C11.6531 20.0248 11.3259 20.1755 10.6715 20.4768L10.0757 20.7512C7.77268 21.8115 6.62118 22.3417 5.85515 21.7602C5.08912 21.1787 5.21588 19.8706 5.4694 17.2544L5.53498 16.5776C5.60703 15.8341 5.64305 15.4624 5.53586 15.1177C5.42868 14.773 5.19043 14.4944 4.71392 13.9372L4.2801 13.4299C2.60325 11.4691 1.76482 10.4886 2.05742 9.54773C2.35002 8.60682 3.57986 8.32856 6.03954 7.77203L6.67589 7.62805C7.37485 7.4699 7.72433 7.39083 8.00494 7.17781C8.28555 6.96479 8.46553 6.64194 8.82547 5.99623L9.15316 5.40838Z"
-                                                stroke="currentColor"
-                                                strokeWidth="1.5"
-                                            />
-                                        </svg>
-                                        <div className="ltr:ml-3 rtl:mr-3">Favourites</div>
-                                    </div>
-                                </button>
-                                <div className="h-px w-full border-b border-white-light dark:border-[#1b2e4b]"></div>
-                                <div className="px-1 py-3 text-white-dark">
-                                    <div className="flex justify-between">
-                                        <div>Tags</div>
-                                        <div>
-                                            <button type="button" onClick={() => setTagsModal(true)}>
-                                                <BsGear />
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <Transition appear show={tagsModal} as={Fragment}>
-                                        <Dialog as="div" open={tagsModal} initialFocus={tagTitleRef} onClose={() => setTagsModal(true)}>
-                                            <Transition.Child
-                                                as={Fragment}
-                                                enter="ease-out duration-300"
-                                                enterFrom="opacity-0"
-                                                enterTo="opacity-100"
-                                                leave="ease-in duration-200"
-                                                leaveFrom="opacity-100"
-                                                leaveTo="opacity-0"
-                                            >
-                                                <div className="fixed inset-0" />
-                                            </Transition.Child>
-                                            <div className="fixed inset-0 bg-[black]/60 z-[999] overflow-y-auto">
-                                                <div className="flex items-center justify-center min-h-screen px-4">
-                                                    <Transition.Child
-                                                        as={Fragment}
-                                                        enter="ease-out duration-300"
-                                                        enterFrom="opacity-0 scale-95"
-                                                        enterTo="opacity-100 scale-100"
-                                                        leave="ease-in duration-200"
-                                                        leaveFrom="opacity-100 scale-100"
-                                                        leaveTo="opacity-0 scale-95"
-                                                    >
-                                                        <Dialog.Panel as="div" className="panel border-0 p-0 rounded-lg overflow-hidden w-full max-w-lg my-8 text-black dark:text-white-dark">
-                                                            <div className="flex bg-[#fbfbfb] dark:bg-[#121c2c] items-center justify-between px-5 py-3">
-                                                                <div className="font-bold text-lg">Tags Setting</div>
-                                                                <button type="button" onClick={() => setTagsModal(false)} className="text-white-dark hover:text-dark">
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                                                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                                                                    </svg>
-                                                                </button>
-                                                            </div>
-                                                            <div className="px-5 pb-5">
-                                                                <div>
-                                                                    <form onSubmit={tagAdd}>
-                                                                        <div className="flex">
-                                                                            <select value={tagColor} onChange={tagColorChange} className="form-select text-white-dark ltr:rounded-r-none rtl:rounded-l-none" required>
-                                                                                <option value="">Color</option>
-                                                                                <option value="primary" className="bg-primary text-white">Primary</option>
-                                                                                <option value="info" className="bg-info text-white">Info</option>
-                                                                                <option value="success" className="bg-success text-white">Success</option>
-                                                                                <option value="warning" className="bg-warning text-white">Warning</option>
-                                                                                <option value="danger" className="bg-danger text-white">Danger</option>
-                                                                            </select>
-                                                                            <input type="text" ref={tagTitleRef} value={tagTitle} onChange={tagTitleChange} placeholder="Tag" minLength={3} className="form-input ltr:rounded-r-none rtl:rounded-l-none ltr:rounded-l-none rtl:rounded-r-none" required />
-                                                                            <button type="submit" className="btn btn-primary ltr:rounded-l-none rtl:rounded-r-none">
-                                                                                {tagAdding === false ? <BsPlus /> : <FiLoader className="animate-ping" />}
-                                                                            </button>
-                                                                        </div>
-                                                                    </form>
-                                                                </div>
-                                                                <div className="my-5">
-                                                                    <ul>
-                                                                        <ReactSortable list={tagsList} setList={setTagsList} onChange={tagsSort} animation={200} handle=".handle" group="handler" ghostClass="gu-transit">
-                                                                            {tagsList.map((item: any, index) => {
-                                                                                return (
-                                                                                    <li key={item.code} className="mb-2.5">
-                                                                                        <div className="flex">
-                                                                                            <select value={item.color} onChange={(event) => tagColorChange2(item.code, event)} className="form-select text-white-dark ltr:rounded-r-none rtl:rounded-l-none" required>
-                                                                                                <option value="" disabled>Color</option>
-                                                                                                <option value="primary" className="bg-primary text-white">Primary</option>
-                                                                                                <option value="info" className="bg-info text-white">Info</option>
-                                                                                                <option value="success" className="bg-success text-white">Success</option>
-                                                                                                <option value="warning" className="bg-warning text-white">Warning</option>
-                                                                                                <option value="danger" className="bg-danger text-white">Danger</option>
-                                                                                            </select>
-                                                                                            <input type="text" value={item.title} onChange={(event) => tagTitleChange2(item.code, event)} placeholder="Tag" minLength={3} className="form-input ltr:rounded-r-none rtl:rounded-l-none ltr:rounded-l-none rtl:rounded-r-none" required />
-                                                                                            <button type="button" onClick={tagUpdate} data-code={item.code} className="btn btn-primary rounded-l-none rounded-r-none">
-                                                                                                <BsCheckLg />
-                                                                                            </button>
-                                                                                            <button type="button" onClick={tagDelete} data-code={item.code} className="btn btn-danger rounded-l-none rounded-r-none">
-                                                                                                <BsTrash />
-                                                                                            </button>
-                                                                                            <button type="button" className="handle cursor-move btn btn-dark ltr:rounded-l-none rtl:rounded-r-none">
-                                                                                                <BsArrowDownUp />
-                                                                                            </button>
-                                                                                        </div>
-                                                                                    </li>
-                                                                                );
-                                                                            })}
-                                                                        </ReactSortable>
-                                                                    </ul>
-                                                                </div>
-                                                            </div>
-                                                        </Dialog.Panel>
-                                                    </Transition.Child>
-                                                </div>
-                                            </div>
-                                        </Dialog>
-                                    </Transition>
-                                </div>
-
-                                {tagsList.map((item: any) => {
-                                    return (
-                                        <button
-                                            key={item.code}
-                                            type="button"
-                                            className=
-                                            {`flex h-10 w-full items-center rounded-md p-1 font-medium text-${item.color} duration-300 hover:bg-white-dark/10 ltr:hover:pl-3 rtl:hover:pr-3 dark:hover:bg-[#181F32] ${
-                                                selectedTab === '${item.title}' && 'bg-gray-100 ltr:pl-3 rtl:pr-3 dark:bg-[#181F32]'
-                                            }`}
-                                            onClick={() => tabChanged(`${item.title}`)}
-                                        >
-                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 rotate-45 fill-${item.color}`}>
-                                                <path
-                                                    d="M2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C22 4.92893 22 7.28595 22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12Z"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                ></path>
-                                            </svg>
-                                            <div className="ltr:ml-3 rtl:mr-3">{item.title}</div>
+                            <div className="px-1 py-3 text-white-dark">
+                                <div className="flex justify-between">
+                                    <div>Tags</div>
+                                    <div>
+                                        <button type="button" onClick={() => setTagsModal(true)}>
+                                            <BsGear />
                                         </button>
-                                    );
-                                })}
-
+                                    </div>
+                                </div>
+                                <Transition appear show={tagsModal} as={Fragment}>
+                                    <Dialog as="div" open={tagsModal} initialFocus={tagTitleRef} onClose={() => setTagsModal(true)}>
+                                        <Transition.Child
+                                            as={Fragment}
+                                            enter="ease-out duration-300"
+                                            enterFrom="opacity-0"
+                                            enterTo="opacity-100"
+                                            leave="ease-in duration-200"
+                                            leaveFrom="opacity-100"
+                                            leaveTo="opacity-0"
+                                        >
+                                            <div className="fixed inset-0" />
+                                        </Transition.Child>
+                                        <div className="fixed inset-0 bg-[black]/60 z-[999] overflow-y-auto">
+                                            <div className="flex items-center justify-center min-h-screen px-4">
+                                                <Transition.Child
+                                                    as={Fragment}
+                                                    enter="ease-out duration-300"
+                                                    enterFrom="opacity-0 scale-95"
+                                                    enterTo="opacity-100 scale-100"
+                                                    leave="ease-in duration-200"
+                                                    leaveFrom="opacity-100 scale-100"
+                                                    leaveTo="opacity-0 scale-95"
+                                                >
+                                                    <Dialog.Panel as="div" className="panel border-0 p-0 rounded-lg overflow-hidden w-full max-w-lg my-8 text-black dark:text-white-dark">
+                                                        <div className="flex bg-[#fbfbfb] dark:bg-[#121c2c] items-center justify-between px-5 py-3">
+                                                            <div className="font-bold text-lg">Tags Setting</div>
+                                                            <button type="button" onClick={() => setTagsModal(false)} className="text-white-dark hover:text-dark">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                        <div className="px-5 pb-5">
+                                                            <div>
+                                                                <form onSubmit={tagAdd}>
+                                                                    <div className="flex">
+                                                                        <select value={tagColor} onChange={tagColorChange} className="form-select text-white-dark ltr:rounded-r-none rtl:rounded-l-none" required>
+                                                                            <option value="">Color</option>
+                                                                            <option value="primary" className="bg-primary text-white">Primary</option>
+                                                                            <option value="info" className="bg-info text-white">Info</option>
+                                                                            <option value="success" className="bg-success text-white">Success</option>
+                                                                            <option value="warning" className="bg-warning text-white">Warning</option>
+                                                                            <option value="danger" className="bg-danger text-white">Danger</option>
+                                                                        </select>
+                                                                        <input type="text" ref={tagTitleRef} value={tagTitle} onChange={tagTitleChange} placeholder="Tag" minLength={2} className="form-input ltr:rounded-r-none rtl:rounded-l-none ltr:rounded-l-none rtl:rounded-r-none" required />
+                                                                        <button type="submit" className="btn btn-primary ltr:rounded-l-none rtl:rounded-r-none">
+                                                                            {tagAdding === false ? <BsPlus /> : <FiLoader className="animate-ping" />}
+                                                                        </button>
+                                                                    </div>
+                                                                </form>
+                                                            </div>
+                                                            <div className="my-5">
+                                                                <ul>
+                                                                    <ReactSortable list={tagsList} setList={setTagsList} onChange={tagsSort} animation={200} handle=".handle" group="handler" ghostClass="gu-transit">
+                                                                        {tagsList.map((item: any, index) => {
+                                                                            return (
+                                                                                <li key={item.id} className="mb-2.5">
+                                                                                    <div className="flex">
+                                                                                        <select value={item.color} onChange={(event) => tagColorChange2(item.id, event)} className="form-select text-white-dark ltr:rounded-r-none rtl:rounded-l-none" required>
+                                                                                            <option value="" disabled>Color</option>
+                                                                                            <option value="primary" className="bg-primary text-white">Primary</option>
+                                                                                            <option value="info" className="bg-info text-white">Info</option>
+                                                                                            <option value="success" className="bg-success text-white">Success</option>
+                                                                                            <option value="warning" className="bg-warning text-white">Warning</option>
+                                                                                            <option value="danger" className="bg-danger text-white">Danger</option>
+                                                                                        </select>
+                                                                                        <input type="text" value={item.title} onChange={(event) => tagTitleChange2(item.id, event)} placeholder="Tag" minLength={3} className="form-input ltr:rounded-r-none rtl:rounded-l-none ltr:rounded-l-none rtl:rounded-r-none" required />
+                                                                                        <button type="button" onClick={tagUpdate} data-id={item.id} className="btn btn-primary rounded-l-none rounded-r-none">
+                                                                                            <BsCheckLg />
+                                                                                        </button>
+                                                                                        <button type="button" onClick={tagDelete} data-id={item.id} className="btn btn-danger rounded-l-none rounded-r-none">
+                                                                                            <BsTrash />
+                                                                                        </button>
+                                                                                        <button type="button" className="handle cursor-move btn btn-dark ltr:rounded-l-none rtl:rounded-r-none">
+                                                                                            <BsArrowDownUp />
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </li>
+                                                                            );
+                                                                        })}
+                                                                    </ReactSortable>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </Dialog.Panel>
+                                                </Transition.Child>
+                                            </div>
+                                        </div>
+                                    </Dialog>
+                                </Transition>
                             </div>
+
+                            <button type="button" className="flex h-10 w-full items-center rounded-md p-1 font-medium duration-300 hover:bg-white-dark/10 ltr:hover:pl-3 rtl:hover:pr-3 dark:hover:bg-[#181F32]" onClick={() => setFilterTags('')}>
+                                <BsCheck2All />
+                                <div className="ltr:ml-3 rtl:mr-3"><strong>ALL NOTES</strong></div>
+                            </button>
+
+                            {tagsList.map((item: any) => {
+                                return (
+                                    <button
+                                        key={item.id}
+                                        type="button"
+                                        className=
+                                        {`flex h-10 w-full items-center rounded-md p-1 font-medium text-${item.color} duration-300 hover:bg-white-dark/10 ltr:hover:pl-3 rtl:hover:pr-3 dark:hover:bg-[#181F32] ${
+                                            filterTags === '${item.title}' && 'bg-gray-100 ltr:pl-3 rtl:pr-3 dark:bg-[#181F32]'
+                                        }`}
+                                        onClick={() => tabChanged(`${item.title}`)}
+                                    >
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 rotate-45 fill-${item.color}`}>
+                                            <path
+                                                d="M2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C22 4.92893 22 7.28595 22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12Z"
+                                                stroke="currentColor"
+                                                strokeWidth="1.5"
+                                            ></path>
+                                        </svg>
+                                        <div className="ltr:ml-3 rtl:mr-3">{item.title}</div>
+                                    </button>
+                                );
+                            })}
                         </PerfectScrollbar>
                     </div>
                     <div className="absolute bottom-0 w-full p-4 ltr:left-0 rtl:right-0">
+                        <button className="btn btn-danger w-full mb-5" type="button" onClick={truncateTags}>
+                            <BsTrash className="ltr:mr-2 rtl:ml-2" /> Truncate Tags
+                        </button>
+                        <button className="btn btn-danger w-full mb-5" type="button" onClick={truncateNotes}>
+                            <BsTrash className="ltr:mr-2 rtl:ml-2" /> Truncate Notes
+                        </button>
                         <button className="btn btn-primary w-full" type="button" onClick={() => editNote()}>
                             <svg className="h-5 w-5 ltr:mr-2 rtl:ml-2" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -854,7 +713,7 @@ const Notes = () => {
                                                                     </button>
                                                                 </li>
                                                                 <li>
-                                                                    <button type="button" onClick={() => deleteNoteConfirm(note)}>
+                                                                    <button type="button" /*onClick={() => deleteNoteConfirm(note)}*/>
                                                                         <svg className="ltr:mr-3 rtl:ml-3" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                                             <path
                                                                                 opacity="0.5"
@@ -900,7 +759,7 @@ const Notes = () => {
                                                 </div>
                                                 <div>
                                                     <h4 className="mt-4 font-semibold">{note.title}</h4>
-                                                    <p className="mt-2 text-white-dark">{note.description}</p>
+                                                    <div className="mt-2 text-white-dark">{note.description}</div>
                                                 </div>
                                             </div>
                                             <div className="absolute bottom-5 left-0 w-full px-5">
@@ -910,17 +769,7 @@ const Notes = () => {
                                                             <Dropdown
                                                                 offset={[0, 5]}
                                                                 placement={`${isRtl ? 'bottom-end' : 'bottom-start'}`}
-                                                                btnClassName={`${
-                                                                    note.tag === 'personal'
-                                                                        ? 'text-primary'
-                                                                        : note.tag === 'work'
-                                                                        ? 'text-warning'
-                                                                        : note.tag === 'social'
-                                                                        ? 'text-info'
-                                                                        : note.tag === 'important'
-                                                                        ? 'text-danger'
-                                                                        : ''
-                                                                }`}
+                                                                btnClassName={`text-${note.tags}`}
                                                                 button={
                                                                     <span>
                                                                         <svg
@@ -929,17 +778,7 @@ const Notes = () => {
                                                                             viewBox="0 0 24 24"
                                                                             fill="none"
                                                                             xmlns="http://www.w3.org/2000/svg"
-                                                                            className={`h-3 w-3 rotate-45 ${
-                                                                                note.tag === 'personal'
-                                                                                    ? 'fill-primary'
-                                                                                    : note.tag === 'work'
-                                                                                    ? 'fill-warning'
-                                                                                    : note.tag === 'social'
-                                                                                    ? 'fill-info'
-                                                                                    : note.tag === 'important'
-                                                                                    ? 'fill-danger'
-                                                                                    : ''
-                                                                            }`}
+                                                                            className={`h-3 w-3 rotate-45 fill-${note.tags}`}
                                                                         >
                                                                             <path
                                                                                 d="M2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C22 4.92893 22 7.28595 22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12Z"
@@ -1032,7 +871,7 @@ const Notes = () => {
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center">
-                                                        <button type="button" className="text-danger" onClick={() => deleteNoteConfirm(note)}>
+                                                        <button type="button" className="text-danger" /*onClick={() => deleteNoteConfirm(note)}*/>
                                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                                 <path
                                                                     opacity="0.5"
@@ -1052,22 +891,6 @@ const Notes = () => {
                                                                 <path opacity="0.5" d="M14.5 11L14 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                                                             </svg>
                                                         </button>
-                                                        <button type="button" className="group text-warning ltr:ml-2 rtl:mr-2" onClick={() => setFav(note)}>
-                                                            <svg
-                                                                className={`h-4.5 w-4.5 group-hover:fill-warning ${note.isFav ? 'fill-warning' : ''}`}
-                                                                width="20"
-                                                                height="20"
-                                                                viewBox="0 0 24 24"
-                                                                fill="none"
-                                                                xmlns="http://www.w3.org/2000/svg"
-                                                            >
-                                                                <path
-                                                                    d="M9.15316 5.40838C10.4198 3.13613 11.0531 2 12 2C12.9469 2 13.5802 3.13612 14.8468 5.40837L15.1745 5.99623C15.5345 6.64193 15.7144 6.96479 15.9951 7.17781C16.2757 7.39083 16.6251 7.4699 17.3241 7.62805L17.9605 7.77203C20.4201 8.32856 21.65 8.60682 21.9426 9.54773C22.2352 10.4886 21.3968 11.4691 19.7199 13.4299L19.2861 13.9372C18.8096 14.4944 18.5713 14.773 18.4641 15.1177C18.357 15.4624 18.393 15.8341 18.465 16.5776L18.5306 17.2544C18.7841 19.8706 18.9109 21.1787 18.1449 21.7602C17.3788 22.3417 16.2273 21.8115 13.9243 20.7512L13.3285 20.4768C12.6741 20.1755 12.3469 20.0248 12 20.0248C11.6531 20.0248 11.3259 20.1755 10.6715 20.4768L10.0757 20.7512C7.77268 21.8115 6.62118 22.3417 5.85515 21.7602C5.08912 21.1787 5.21588 19.8706 5.4694 17.2544L5.53498 16.5776C5.60703 15.8341 5.64305 15.4624 5.53586 15.1177C5.42868 14.773 5.19043 14.4944 4.71392 13.9372L4.2801 13.4299C2.60325 11.4691 1.76482 10.4886 2.05742 9.54773C2.35002 8.60682 3.57986 8.32856 6.03954 7.77203L6.67589 7.62805C7.37485 7.4699 7.72433 7.39083 8.00494 7.17781C8.28555 6.96479 8.46553 6.64194 8.82547 5.99623L9.15316 5.40838Z"
-                                                                    stroke="currentColor"
-                                                                    strokeWidth="1.5"
-                                                                />
-                                                            </svg>
-                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1080,8 +903,8 @@ const Notes = () => {
                         <div className="flex h-full min-h-[400px] items-center justify-center text-lg font-semibold sm:min-h-[300px]">No data available</div>
                     )}
 
-                    <Transition appear show={addContactModal} as={Fragment}>
-                        <Dialog as="div" open={addContactModal} onClose={() => setAddContactModal(false)} className="relative z-50">
+                    <Transition appear show={noteUpdateModal} as={Fragment}>
+                        <Dialog as="div" open={noteUpdateModal} onClose={() => setNoteUpdateModal(false)} className="relative z-50">
                             <Transition.Child
                                 as={Fragment}
                                 enter="ease-out duration-300"
@@ -1108,7 +931,7 @@ const Notes = () => {
                                         <Dialog.Panel className="panel w-full max-w-lg overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
                                             <button
                                                 type="button"
-                                                onClick={() => setAddContactModal(false)}
+                                                onClick={() => setNoteUpdateModal(false)}
                                                 className="absolute top-4 text-gray-400 outline-none hover:text-gray-800 ltr:right-4 rtl:left-4 dark:hover:text-gray-600"
                                             >
                                                 <svg
@@ -1130,7 +953,7 @@ const Notes = () => {
                                                 {params.id ? 'Edit Note' : 'Add Note'}
                                             </div>
                                             <div className="p-5">
-                                                <form>
+                                                <form onSubmit={noteUpdate}>
                                                     <div className="mb-5">
                                                         <label htmlFor="title">Title</label>
                                                         <input id="title" type="text" placeholder="Enter Title" className="form-input" value={params.title} onChange={(e) => changeValue(e)} />
@@ -1170,17 +993,18 @@ const Notes = () => {
                                                     </div>
                                                     <div className="mb-5">
                                                         <label htmlFor="desc">Description</label>
-                                                        <textarea
+                                                        {/*<textarea
                                                             id="description"
                                                             rows={3}
                                                             className="form-textarea min-h-[130px] resize-none"
                                                             placeholder="Enter Description"
                                                             value={params.description}
                                                             onChange={(e) => changeValue(e)}
-                                                        ></textarea>
+                                                        ></textarea>*/}
+                                                        <ReactQuill theme="snow" value={description} onChange={setDescription} />
                                                     </div>
                                                     <div className="mt-8 flex items-center justify-end">
-                                                        <button type="button" className="btn btn-outline-danger gap-2" onClick={() => setAddContactModal(false)}>
+                                                        <button type="button" className="btn btn-outline-danger gap-2" onClick={() => setNoteUpdateModal(false)}>
                                                             Cancel
                                                         </button>
                                                         <button type="button" className="btn btn-primary ltr:ml-4 rtl:mr-4" onClick={saveNote}>
@@ -1188,92 +1012,6 @@ const Notes = () => {
                                                         </button>
                                                     </div>
                                                 </form>
-                                            </div>
-                                        </Dialog.Panel>
-                                    </Transition.Child>
-                                </div>
-                            </div>
-                        </Dialog>
-                    </Transition>
-
-                    <Transition appear show={isDeleteNoteModal} as={Fragment}>
-                        <Dialog as="div" open={isDeleteNoteModal} onClose={() => setIsDeleteNoteModal(false)} className="relative z-50">
-                            <Transition.Child
-                                as={Fragment}
-                                enter="ease-out duration-300"
-                                enterFrom="opacity-0"
-                                enterTo="opacity-100"
-                                leave="ease-in duration-200"
-                                leaveFrom="opacity-100"
-                                leaveTo="opacity-0"
-                            >
-                                <div className="fixed inset-0 bg-[black]/60" />
-                            </Transition.Child>
-
-                            <div className="fixed inset-0 overflow-y-auto">
-                                <div className="flex min-h-full items-center justify-center px-4 py-8">
-                                    <Transition.Child
-                                        as={Fragment}
-                                        enter="ease-out duration-300"
-                                        enterFrom="opacity-0 scale-95"
-                                        enterTo="opacity-100 scale-100"
-                                        leave="ease-in duration-200"
-                                        leaveFrom="opacity-100 scale-100"
-                                        leaveTo="opacity-0 scale-95"
-                                    >
-                                        <Dialog.Panel className="panel w-full max-w-lg overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsDeleteNoteModal(false)}
-                                                className="absolute top-4 text-gray-400 outline-none hover:text-gray-800 ltr:right-4 rtl:left-4 dark:hover:text-gray-600"
-                                            >
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    width="24"
-                                                    height="24"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                >
-                                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                                </svg>
-                                            </button>
-                                            <div className="bg-[#fbfbfb] py-3 text-lg font-medium ltr:pl-5 ltr:pr-[50px] rtl:pr-5 rtl:pl-[50px] dark:bg-[#121c2c]">Delete Notes</div>
-                                            <div className="p-5 text-center">
-                                                <div className="mx-auto w-fit rounded-full bg-danger p-4 text-white ring-4 ring-danger/30">
-                                                    <svg className="mx-auto" width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path
-                                                            opacity="0.5"
-                                                            d="M9.17065 4C9.58249 2.83481 10.6937 2 11.9999 2C13.3062 2 14.4174 2.83481 14.8292 4"
-                                                            stroke="currentColor"
-                                                            strokeWidth="1.5"
-                                                            strokeLinecap="round"
-                                                        />
-                                                        <path d="M20.5001 6H3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                                                        <path
-                                                            d="M18.8334 8.5L18.3735 15.3991C18.1965 18.054 18.108 19.3815 17.243 20.1907C16.378 21 15.0476 21 12.3868 21H11.6134C8.9526 21 7.6222 21 6.75719 20.1907C5.89218 19.3815 5.80368 18.054 5.62669 15.3991L5.16675 8.5"
-                                                            stroke="currentColor"
-                                                            strokeWidth="1.5"
-                                                            strokeLinecap="round"
-                                                        />
-                                                        <path opacity="0.5" d="M9.5 11L10 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                                                        <path opacity="0.5" d="M14.5 11L14 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                                                    </svg>
-                                                </div>
-                                                <div className="mx-auto mt-5 sm:w-3/4">Are you sure you want to delete Notes?</div>
-
-                                                <div className="mt-8 flex items-center justify-center">
-                                                    <button type="button" className="btn btn-outline-danger" onClick={() => setIsDeleteNoteModal(false)}>
-                                                        Cancel
-                                                    </button>
-                                                    <button type="button" className="btn btn-primary ltr:ml-4 rtl:mr-4" onClick={deleteNote}>
-                                                        Delete
-                                                    </button>
-                                                </div>
                                             </div>
                                         </Dialog.Panel>
                                     </Transition.Child>
