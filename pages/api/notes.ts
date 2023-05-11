@@ -1,13 +1,21 @@
 import moment from 'moment';
 import type { NextApiRequest, NextApiResponse } from 'next';
+
 const { v4: uuidv4 } = require('uuid');
 const db = require('../../config/db.ts');
-import dynamic from 'next/dynamic';
-const ReactQuill = dynamic(import('react-quill'), { ssr: false });
+
+export const config = {
+    api: {
+        bodyParser: {
+            sizeLimit: '50mb',
+            parameterLimit: 50000,
+        },
+    },
+}
 
 let sql: string;
 
-export default function tags(req : NextApiRequest, res : NextApiResponse) {
+export default function notes(req : NextApiRequest, res : NextApiResponse) {
     if (db.escape(req.body.module) === "'truncateNotes'") {
         sql = `DROP TABLE IF EXISTS notes;
                 CREATE TABLE notes (
@@ -49,7 +57,7 @@ export default function tags(req : NextApiRequest, res : NextApiResponse) {
                             description      = ${db.escape(req.body.description)}
                         where id = ${db.escape(req.body.id)}`;
         }
-    } else if (db.escape(req.body.module) === "'tagDelete'") {
+    } else if (db.escape(req.body.module) === "'notegDelete'") {
         sql = `delete from notes where id = ${db.escape(req.body.id)}`;
     }
     //console.log(sql);

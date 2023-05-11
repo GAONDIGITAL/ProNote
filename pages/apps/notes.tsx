@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { IRootState } from '../../store';
 import { setPageTitle } from '../../store/themeConfigSlice';
 import axios from 'axios';
-import { BsGear, BsPlus, BsArrowDownUp, BsCheckLg, BsTrash, BsCheck2All, BsPencilSquare, BsX } from 'react-icons/bs';
+import { BsGear, BsPlus, BsArrowDownUp, BsCheckLg, BsTrash, BsCheck2All, BsPencilSquare, BsX, BsPencil } from 'react-icons/bs';
 import { FiLoader } from 'react-icons/fi';
 import { ReactSortable } from 'react-sortablejs';
 import React from 'react';
@@ -82,6 +82,7 @@ const Notes = () => {
     const quillModules = {
         toolbar: [
             ['bold', 'italic'],
+            [{ align: '' }, { align: 'center' }, { align: 'right' }, { align: 'justify' }],
             [
                 { list: 'ordered' },
                 { list: 'bullet' },
@@ -108,12 +109,65 @@ const Notes = () => {
         'link',
         'image',
         'video',
+        'align',
     ];
+
+    const editNote = (note: any = null) => {
+        setIsShowNoteMenu(false);
+
+        let option: any = [];
+        tagsList.map((item: any) => {
+            option.push({ id: item.id, value: item.id, label: item.title });
+        });
+        setTagsListOption(option);
+
+        if (note) {
+            setIsViewNoteModal(false);
+
+            let option: any = [];
+            note.tags.map((item: any) => {
+                option.push({ id: item.id, value: item.id, label: item.title });
+            });
+
+            const imsiNote = { ...note, tags: option };
+            //console.log(imsiNote);
+            
+            setParams(imsiNote);
+        } else {
+            setParams(defaultParams);
+        }
+
+        setNoteModal(true);
+    };
+
+    const getByte = (str: string): number => {
+        return str
+            .split('') 
+            .map((s: string) => s.charCodeAt(0))
+            .reduce((prev, c) => (prev + ((c === 10) ? 2 : ((c >> 7) ? 2 : 1))), 0);
+    }
+
+    const bytesToSize = (bytes: number): string => {
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        if (bytes === 0) return 'n/a';
+        const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), sizes.length - 1);
+        if (i === 0) return `${bytes} ${sizes[i]}`;
+        return `${(bytes / (1024 ** i)).toFixed(1)} ${sizes[i]}`;
+    }
 
     const noteUpdate = async () => {
         //console.log(params);
 
         setNoteUpdating(true);
+
+        // const size = getByte(params.description);
+        // console.log(size);
+
+        // if (size > 250000) {
+        //     setNoteUpdating(false);
+        //     showMessage(`현제 내용이 ${bytesToSize(size)} 입니다. 2MB 이하로 작성해 주십시오.`, 'error');
+        //     return;
+        // }
 
         let newTags = '';
 
@@ -133,7 +187,7 @@ const Notes = () => {
             setNoteUpdating(false);
             setNoteModal(false);
             setFilterTags('');
-            searchNotes();
+            notesLoad();
         } else {
             showMessage('데이터를 저장하지 못했습니다.', 'error');
             setNoteUpdating(false);
@@ -160,10 +214,9 @@ const Notes = () => {
                 if (result.data.affectedRows) {
                     showMessage('정상적으로 삭제하였습니다.');
                     setParams(defaultParams);
-                    setNoteUpdating(false);
-                    setNoteModal(false);
+                    setIsViewNoteModal(false);
                     setFilterTags('');
-                    searchNotes();
+                    notesLoad();
                 } else {
                     showMessage('데이터를 삭제하지 못했습니다.', 'error');
                 }
@@ -171,6 +224,7 @@ const Notes = () => {
         });
     };
 
+    const [page, setPage] = useState(0);
     const [notesList, setNotesList] = useState<Note[]>([]);
 
     useEffect(() => {
@@ -187,10 +241,10 @@ const Notes = () => {
 
         result.data[0].map((item: any) => {
             let tagArray: Tag[] = [];
-            const tagStringArray = item.tags.split(',');
+            const tagStringArray = item.tags ? item.tags.split(',') : [];
 
             tagStringArray.forEach((t: string) => {
-                const filter_data = result.data[1].filter((tag) => tag.id == t);
+                const filter_data = result.data[1].filter((tag: any) => tag.id == t);
                 tagArray.push(filter_data[0]);
             });
 
@@ -225,7 +279,7 @@ const Notes = () => {
 
     const searchNotes = () => {
         if (filterTags) {
-            setFilterdNotesList(notesList.filter((item) => JSON.stringify(item.tags).indexOf(filterTags) !== -1));
+            setFilterdNotesList(notesList.filter((item) => JSON.stringify(item.tags).includes(filterTags)));
         } else {
             setFilterdNotesList(notesList);
         }
@@ -234,31 +288,6 @@ const Notes = () => {
     const tabChanged = (id: string) => {
         setFilterTags(id);
         setIsShowNoteMenu(false);
-    };
-
-    const viewNote = (note: any) => {
-        setParams(note);
-        setIsViewNoteModal(true);
-    };
-
-    const editNote = (note: any = null) => {
-        setIsShowNoteMenu(false);
-
-        if (note) {
-            let json1 = JSON.parse(JSON.stringify(note));
-            setParams(json1);
-        } else {
-            const json = JSON.parse(JSON.stringify(defaultParams));
-            setParams(json);
-        }
-
-        let option: any = [];
-        tagsList.map((item: any) => {
-            option.push({ value: item.id, label: item.title });
-        });
-        setTagsListOption(option);
-
-        setNoteModal(true);
     };
     
     useEffect(() => {
@@ -563,7 +592,7 @@ const Notes = () => {
                                                                             <option value="danger" className="bg-danger text-white">Danger</option>
                                                                         </select>
                                                                         <input type="text" ref={tagTitleRef} value={tagTitle} onChange={tagTitleChange} placeholder="Tag" minLength={2} className="form-input ltr:rounded-r-none rtl:rounded-l-none ltr:rounded-l-none rtl:rounded-r-none" required />
-                                                                        <button type="submit" className="btn btn-primary ltr:rounded-l-none rtl:rounded-r-none">
+                                                                        <button type="submit" className="btn btn-primary max-sm:btn-sm ltr:rounded-l-none rtl:rounded-r-none">
                                                                             {tagAdding === false ? <BsPlus /> : <FiLoader className="animate-ping" />}
                                                                         </button>
                                                                     </div>
@@ -585,13 +614,13 @@ const Notes = () => {
                                                                                             <option value="danger" className="bg-danger text-white">Danger</option>
                                                                                         </select>
                                                                                         <input type="text" value={item.title} onChange={(event) => tagTitleChange2(item.id, event)} placeholder="Tag" minLength={3} className="form-input ltr:rounded-r-none rtl:rounded-l-none ltr:rounded-l-none rtl:rounded-r-none" required />
-                                                                                        <button type="button" onClick={tagUpdate} data-id={item.id} className="btn btn-primary rounded-l-none rounded-r-none">
+                                                                                        <button type="button" onClick={tagUpdate} data-id={item.id} className="btn btn-primary max-sm:btn-sm rounded-l-none rounded-r-none">
                                                                                             <BsCheckLg />
                                                                                         </button>
-                                                                                        <button type="button" onClick={tagDelete} data-id={item.id} className="btn btn-danger rounded-l-none rounded-r-none">
+                                                                                        <button type="button" onClick={tagDelete} data-id={item.id} className="btn btn-danger max-sm:btn-sm rounded-l-none rounded-r-none">
                                                                                             <BsTrash />
                                                                                         </button>
-                                                                                        <button type="button" className="handle cursor-move btn btn-dark ltr:rounded-l-none rtl:rounded-r-none">
+                                                                                        <button type="button" className="handle cursor-move btn btn-dark max-sm:btn-sm ltr:rounded-l-none rtl:rounded-r-none">
                                                                                             <BsArrowDownUp />
                                                                                         </button>
                                                                                     </div>
@@ -640,13 +669,13 @@ const Notes = () => {
                         </PerfectScrollbar>
                     </div>
                     <div className="absolute bottom-0 w-full p-4 ltr:left-0 rtl:right-0">
-                        <button className="btn btn-danger w-full mb-5" type="button" onClick={truncateTags}>
+                        <button className="btn btn-danger max-sm:btn-sm w-full mb-5" type="button" onClick={truncateTags}>
                             <BsTrash className="ltr:mr-2 rtl:ml-2" /> Truncate Tags
                         </button>
-                        <button className="btn btn-danger w-full mb-5" type="button" onClick={truncateNotes}>
+                        <button className="btn btn-danger max-sm:btn-sm w-full mb-5" type="button" onClick={truncateNotes}>
                             <BsTrash className="ltr:mr-2 rtl:ml-2" /> Truncate Notes
                         </button>
-                        <button className="btn btn-primary w-full" type="button" onClick={() => editNote()}>
+                        <button className="btn btn-primary max-sm:btn-sm w-full" type="button" onClick={() => editNote()}>
                             <svg className="h-5 w-5 ltr:mr-2 rtl:ml-2" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -666,26 +695,47 @@ const Notes = () => {
                         </button>
                     </div>
                     {filterdNotesList.length ? (
-                        <div className="">
-                            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-                                {filterdNotesList.map((note: any) => {
-                                    return (
-                                        <div className={`panel bg-${note.tags[0].color}-light shadow-${note.tags[0].color}`} key={note.id}>
-                                            <button className="" onClick={() => showNote(note)}>
-                                                <h4 className="font-semibold text-start">{note.title}</h4>
-                                                <div className="mt-3 text-white-dark text-justify line-clamp-6">{note.description.replace(/<[^>]*>?/g, '')}</div>
-                                            </button>
-                                            <div className="mt-3">
-                                                {note.tags.map((tag: any) => 
-                                                    <button key={tag.id} onClick={() => tabChanged(`${tag.id}`)}>
-                                                        <span className={`badge bg-${tag.color} rounded-full mr-1`}>{tag.title}</span>
-                                                    </button>
-                                                )}
-                                            </div>
+                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                            {filterdNotesList.map((note: any) => {
+                                return (
+                                    <div className={`panel bg-${note.tags.length && note.tags[0].color}-light shadow-${note.tags.length && note.tags[0].color}`} key={note.id}>
+                                        <button className="" onClick={() => showNote(note)}>
+                                            <h4 className="font-semibold text-start line-clamp-1">{note.title}</h4>
+                                            <div className="mt-3 text-white-dark text-justify line-clamp-6 break-all" style={{minHeight: '120px'}}>{note.description.replace(/<[^>]*>?/g, '')}</div>
+                                        </button>
+                                        <div className="mt-3">
+                                            {note.tags.map((tag: any) => 
+                                                <button key={tag.id} onClick={() => tabChanged(`${tag.id}`)}>
+                                                    <span className={`badge bg-${tag.color} rounded-full mr-1`}>{tag.title}</span>
+                                                </button>
+                                            )}
                                         </div>
-                                    );
-                                })}
-                            </div>
+                                    </div>
+                                );
+                            })}
+
+                            {/*//Card Skeleton
+                            <div className="panel bg-gray-300 animate-pulse">
+                                <h1 className="h-5 mt-1 bg-gray-200 rounded-lg dark:bg-gray-700"></h1>
+                                <p className="mt-5 bg-gray-200 rounded-lg dark:bg-gray-700" style={{minHeight: '120px'}}></p>
+                            </div>*/
+                            
+                            /*//Dropzone style upload image
+                            <>
+                                <div className="custom-file-container__image-preview relative">
+                                    <button type="button" className="custom-file-container__image-clear absolute top-0 left-0 block w-fit rounded-full bg-dark-light p-0.5 dark:bg-dark dark:text-white-dark" title="Clear Image">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                    </button>
+                                    <img src="/assets/images/carousel3.jpeg" />
+                                </div>
+                                <div className="custom-file-container__image-preview relative item-center">
+                                    <button type="button" className="custom-file-container__image-clear absolute top-0 left-0 block w-fit rounded-full bg-dark-light p-0.5 dark:bg-dark dark:text-white-dark" title="Clear Image">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                    </button>
+                                    <input type="text" value="8sdufsghdi.pdf" className="form-input bg-gray-100" disabled />
+                                </div>
+                            </>*/
+                            }
                         </div>
                     ) : (
                         <div className="flex h-full min-h-[400px] items-center justify-center text-lg font-semibold sm:min-h-[300px]">No data available</div>
@@ -754,19 +804,22 @@ const Notes = () => {
                                                                     {submitCount ? errors.title ? <div className="text-danger mt-1">{errors.title}</div> : '' : ''}
                                                             </div>
                                                             <div className={`mb-3 ${submitCount ? (errors.description ? 'has-error' : 'has-success') : ''}`}>
-                                                                <ReactQuill id="description" theme="snow" value={params.description} onChange={(html: any) => setParams({ ...params, description: html })} modules={quillModules} formats={quillFormats} />
+                                                                <ReactQuill id="description" theme="snow" value={params.description} onChange={(html: any) => setParams({ ...params, description: html })} modules={quillModules} formats={quillFormats} placeholder='내용을 작성하세요.' />
                                                                 {submitCount ? errors.description ? <div className="mt-1 text-danger">{errors.description}</div> : '' : ''}
                                                             </div>
                                                             <div className="mb-3">
-                                                                <Select id="tags" name="tags" placeholder="Select Tags" options={tagsListOption} onChange={(event: any) => setParams({ ...params, tags: event })} isMulti styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }} menuPortalTarget={document.body} />
+                                                                <Select id="tags" options={tagsListOption} defaultValue={params.tags} onChange={(event: any) => setParams({ ...params, tags: event })} placeholder="Select Tags" isMulti styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }} menuPortalTarget={document.body} />
                                                             </div>
-                                                            {params.id ? <div className="mb-3"><span className="badge badge-outline-info rounded-full ml-3"><BsPencilSquare style={{display: 'inline-block'}} /> {params.created.substring(0, 16)}</span></div> : ''}
+                                                            {params.id ? <div className="mb-3"><span className="badge badge-outline-info rounded-full ml-3"><BsPencilSquare style={{display: 'inline-block'}} /> {params.created.substring(0, 16).replace('T', ' ')}</span></div> : ''}
                                                             <div className="mt-8 flex items-center justify-end">
-                                                                <button type="button" className="btn btn-outline-danger gap-2" onClick={() => setNoteModal(false)}>
+                                                                <button type="button" className="btn btn-outline-danger max-sm:btn-sm gap-2" onClick={() => setNoteModal(false)}>
                                                                     <BsX /> Cancel
                                                                 </button>
-                                                                <button type="submit" className="btn btn-primary ltr:ml-4 rtl:mr-4">
-                                                                    {params.id ? <>{noteUpdating === false ? <BsPencilSquare />:<FiLoader className="animate-ping" />} Update Note</> : <> {noteUpdating === false ? <BsPlus /> : <FiLoader className="animate-ping" />} Add Note</>}
+                                                                <button type="submit" className="btn btn-primary max-sm:btn-sm ltr:ml-4 rtl:mr-4">
+                                                                    {params.id ?
+                                                                         <>{noteUpdating === false ? <BsPencilSquare className="mr-1" /> : <FiLoader className="animate-ping mr-1" />} Update Note</> 
+                                                                    : 
+                                                                        <> {noteUpdating === false ? <BsPlus className="mr-1" /> : <FiLoader className="animate-ping mr-1" />} Add Note</>}
                                                                 </button>
                                                             </div>
                                                         </Form>
@@ -829,14 +882,25 @@ const Notes = () => {
                                             <div className="flex flex-wrap items-center gap-2 bg-[#fbfbfb] py-3 text-lg font-medium ltr:pl-5 ltr:pr-[50px] rtl:pr-5 rtl:pl-[50px] dark:bg-[#121c2c]">
                                                 <div className="ltr:mr-3 rtl:ml-3">{params.title}</div>
                                                 {params.tags.map((tag: any) => <span key={tag.id} className={`badge bg-${tag.color} rounded-full`}>{tag.title}</span>)}
+                                                <span className="badge badge-outline-info rounded-full"><BsPencilSquare style={{display: 'inline-block'}} /> {params.created.substring(0, 16).replace('T', ' ')}</span>
                                             </div>
                                             <div className="p-5">
-                                                <div className="ql-editor" dangerouslySetInnerHTML={{__html: params.description }}></div>
+                                                <div className="ql-container" dangerouslySetInnerHTML={{__html: params.description }}></div>
 
-                                                <div className="mt-8 flex items-center justify-end">
-                                                    <button type="button" className="btn btn-outline-danger" onClick={() => setIsViewNoteModal(false)}>
-                                                        <BsX /> Close
-                                                    </button>
+                                                <div className="mt-8 flex justify-between">
+                                                    <div>
+                                                        <button type="button" data-id={params.id} className="btn btn-danger max-sm:btn-sm" onClick={noteDelete}>
+                                                            <BsTrash className="mr-1" /> Delete
+                                                        </button>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <button type="button" className="btn btn-info max-sm:btn-sm" onClick={() => editNote(params)}>
+                                                            <BsPencil className="mr-1" /> Edit
+                                                        </button>
+                                                        <button type="button" className="btn btn-outline-dark max-sm:btn-sm" onClick={() => setIsViewNoteModal(false)}>
+                                                            <BsX className="mr-1" /> Close
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </Dialog.Panel>

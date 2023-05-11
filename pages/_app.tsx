@@ -13,6 +13,7 @@ import 'react-perfect-scrollbar/dist/css/styles.css';
 
 import '../styles/tailwind.css';
 import { NextPage } from 'next';
+import '../config/globals.css';
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
     getLayout?: (page: ReactElement) => ReactNode;

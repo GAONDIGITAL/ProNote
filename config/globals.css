@@ -1,0 +1,12 @@
+.ql-video {
+    width: 100%;
+    height: 56.25vw;
+    max-height: calc(888px / 16 * 9);
+}
+
+.ql-snow img {
+    max-width: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+}
