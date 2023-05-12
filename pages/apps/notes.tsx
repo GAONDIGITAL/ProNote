@@ -15,9 +15,13 @@ import dynamic from 'next/dynamic';
 import * as Yup from 'yup';
 import { Field, Form, Formik } from 'formik';
 import Select from 'react-select';
+import Tippy from '@tippyjs/react';
+import 'tippy.js/dist/tippy.css';
 const ReactQuill = dynamic(import('react-quill'), { ssr: false });
 
 const Notes = () => {
+    const pageCount = 5;
+
     const dispatch = useDispatch();
     useEffect(() => {
         dispatch(setPageTitle('Notes'));
@@ -33,6 +37,21 @@ const Notes = () => {
     
     const [tagsListOption, setTagsListOption] = useState<Tag[]>([]);
     const [noteUpdating, setNoteUpdating] = useState(false);
+
+    const fakeInsert = async () => {
+        const axiosData = { module: 'fakeInsert' };
+        const result = await axios.post('/api/notes', axiosData);
+        //console.log(result.data);
+        //affectedRows: 1, fieldCount: 0, info: "", insertId: 1, serverStatus: 2, warningStatus: 0
+
+        if (result.data.affectedRows) {
+            showMessage('정상적으로 저장하였습니다.');
+            setPage(1);
+            notesLoad();
+        } else {
+            showMessage('데이터를 저장하지 못했습니다.', 'error');
+        }
+    };
 
     const truncateNotes = async () => {
         Swal.fire({
@@ -184,10 +203,7 @@ const Notes = () => {
         if (result.data.affectedRows) {
             showMessage('정상적으로 저장하였습니다.');
             setParams(defaultParams);
-            setNoteUpdating(false);
-            setNoteModal(false);
-            setFilterTags('');
-            notesLoad();
+            if (params.id === '') setPage(1); else notesLoad();
         } else {
             showMessage('데이터를 저장하지 못했습니다.', 'error');
             setNoteUpdating(false);
@@ -214,9 +230,7 @@ const Notes = () => {
                 if (result.data.affectedRows) {
                     showMessage('정상적으로 삭제하였습니다.');
                     setParams(defaultParams);
-                    setIsViewNoteModal(false);
-                    setFilterTags('');
-                    notesLoad();
+                    setPage(1);
                 } else {
                     showMessage('데이터를 삭제하지 못했습니다.', 'error');
                 }
@@ -224,15 +238,25 @@ const Notes = () => {
         });
     };
 
-    const [page, setPage] = useState(0);
+    const [page, setPage] = useState(1);
+    const [startPage, setStartPage] = useState(0);
+    const [totalCount, setTotalCount] = useState(0);
+    const [endPage, setEndPage] = useState(0);
+    const [pageBlock, setPageBlock] = useState<number[]>([]);
+    const [totalPage, setTotalPage] = useState(0);
     const [notesList, setNotesList] = useState<Note[]>([]);
 
     useEffect(() => {
         notesLoad();
-    }, []);
+    }, [page]);
 
     const notesLoad = async () => {
-        const axiosData = { module: 'notesLoad', user: 'TEST' };
+        setIsViewNoteModal(false);
+        setNoteUpdating(false);
+        setNoteModal(false);
+        setFilterTags('');
+
+        const axiosData = { module: 'notesLoad', user: 'TEST', page: page };
         const result = await axios.post('/api/notes', axiosData);
 
         //console.log(result.data);
@@ -252,8 +276,24 @@ const Notes = () => {
             item.tags = tagArray;
         });
 
-        console.log(result.data[0]);
+        //console.log(result.data);
+
+        setTotalCount(result.data[2][0].totalCount);
+        setTotalPage(result.data[2][0].totalPage);
         setNotesList(result.data[0]);
+
+        let startPage = Math.trunc((page - 1) / pageCount) * pageCount + 1;
+        let endPage = startPage + pageCount - 1;
+        if (endPage >= result.data[2][0].totalPage) endPage = result.data[2][0].totalPage;
+        let pageBlock: number[] = [];
+
+        for (let i = startPage; i <= endPage; i++) {
+            pageBlock.push(i);
+        }
+
+        setPageBlock(pageBlock);
+        setStartPage(startPage);
+        setEndPage(endPage);
     };
 
     const showNote = (note: Note) => {
@@ -530,7 +570,7 @@ const Notes = () => {
                                     <path opacity="0.5" d="M11 12.8975L13.8978 13.6739" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                                 </svg>
                             </div>
-                            <h3 className="text-lg font-semibold ltr:ml-3 rtl:mr-3">Notes</h3>
+                            <h3 className="text-lg font-semibold ltr:ml-3 rtl:mr-3">Notes ({totalCount})</h3>
                         </div>
 
                         <div className="my-4 h-px w-full border-b border-white-light dark:border-[#1b2e4b] mb-3"></div>
@@ -669,6 +709,13 @@ const Notes = () => {
                         </PerfectScrollbar>
                     </div>
                     <div className="absolute bottom-0 w-full p-4 ltr:left-0 rtl:right-0">
+                        <button className="btn btn-success max-sm:btn-sm w-full mb-5" type="button" onClick={fakeInsert}>
+                            <svg className="h-5 w-5 ltr:mr-2 rtl:ml-2" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Fake Data Insert
+                        </button>
                         <button className="btn btn-danger max-sm:btn-sm w-full mb-5" type="button" onClick={truncateTags}>
                             <BsTrash className="ltr:mr-2 rtl:ml-2" /> Truncate Tags
                         </button>
@@ -739,6 +786,69 @@ const Notes = () => {
                         </div>
                     ) : (
                         <div className="flex h-full min-h-[400px] items-center justify-center text-lg font-semibold sm:min-h-[300px]">No data available</div>
+                    )}
+
+                    {totalPage > 1 && (
+                        <div className="flex items-center justify-center mt-5">
+                            <ul className="inline-flex items-center m-auto gap-1">
+                                {page > 1 && (
+                                    <li>
+                                        <Tippy content="맨처음...">
+                                            <button type="button" onClick={() => setPage(1)} className="flex justify-center font-semibold px-2 py-1 rounded transition text-dark hover:text-primary border-2 border-white-light dark:border-[#191e3a] hover:border-primary dark:hover:border-primary dark:text-white-light max-sm:btn-sm">
+                                                《
+                                            </button>
+                                        </Tippy>
+                                    </li>
+                                )}
+                                {startPage > 1 && (
+                                    <li>
+                                        <Tippy content={`이전 ${pageCount} 페이지`}>
+                                            <button type="button" onClick={() => setPage(startPage-1)} className="flex justify-center font-semibold px-2 py-1 rounded transition text-dark hover:text-primary border-2 border-white-light dark:border-[#191e3a] hover:border-primary dark:hover:border-primary dark:text-white-light max-sm:btn-sm">
+                                                〈
+                                            </button>
+                                        </Tippy>
+                                    </li>
+                                )}
+                                {pageBlock.map((i: number) => {
+                                    return (
+                                    page === i ? (
+                                        <li key={i}>
+                                            <Tippy content={`${i} 페이지`}>
+                                                <button type="button" className="flex justify-center font-semibold px-2 py-1 rounded transition text-primary border-2 border-primary dark:border-primary dark:text-white-light max-sm:btn-sm">
+                                                    {i}
+                                                </button>
+                                            </Tippy>
+                                        </li>
+                                    ) : (
+                                        <li key={i}>
+                                            <Tippy content={`${i} 페이지`}>
+                                                <button type="button" onClick={() => setPage(i)} className="flex justify-center font-semibold px-2 py-1 rounded transition text-dark hover:text-primary border-2 border-white-light dark:border-[#191e3a] hover:border-primary dark:hover:border-primary dark:text-white-light max-sm:btn-sm">
+                                                    {i}
+                                                </button>
+                                            </Tippy>
+                                        </li>
+                                    ))
+                                })}
+                                {totalPage > endPage && (
+                                    <li>
+                                        <Tippy content={`다음 ${pageCount} 페이지`}>
+                                            <button type="button" onClick={() => setPage(endPage+1)} className="flex justify-center font-semibold px-2 py-1 rounded transition text-dark hover:text-primary border-2 border-white-light dark:border-[#191e3a] hover:border-primary dark:hover:border-primary dark:text-white-light max-sm:btn-sm">
+                                                〉
+                                            </button>
+                                        </Tippy>
+                                    </li>
+                                )}
+                                {page < totalPage && (
+                                    <li>
+                                        <Tippy content="맨끝으로...">
+                                            <button type="button" onClick={() => setPage(totalPage)} className="flex justify-center font-semibold px-2 py-1 rounded transition text-dark hover:text-primary border-2 border-white-light dark:border-[#191e3a] hover:border-primary dark:hover:border-primary dark:text-white-light max-sm:btn-sm">
+                                                》
+                                            </button>
+                                        </Tippy>
+                                    </li>
+                                )}
+                            </ul>
+                        </div>
                     )}
 
                     <Transition appear show={noteModal} as={Fragment}>
@@ -887,7 +997,7 @@ const Notes = () => {
                                             <div className="p-5">
                                                 <div className="ql-container" dangerouslySetInnerHTML={{__html: params.description }}></div>
 
-                                                <div className="mt-8 flex justify-between">
+                                                <div className="mt-5 flex justify-between">
                                                     <div>
                                                         <button type="button" data-id={params.id} className="btn btn-danger max-sm:btn-sm" onClick={noteDelete}>
                                                             <BsTrash className="mr-1" /> Delete
