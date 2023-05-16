@@ -1,4 +1,5 @@
 import type { AppProps } from 'next/app';
+import { SessionProvider } from 'next-auth/react';
 import { ReactElement, ReactNode, Suspense } from 'react';
 import DefaultLayout from '../components/Layouts/DefaultLayout';
 import { Provider } from 'react-redux';
@@ -27,18 +28,20 @@ const App = ({ Component, pageProps }: AppPropsWithLayout) => {
     const getLayout = Component.getLayout ?? ((page) => <DefaultLayout>{page}</DefaultLayout>);
 
     return (
-        <Provider store={store}>
-            <Head>
-                <title>PRO-NOTE</title>
-                <meta charSet="UTF-8" />
-                <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <meta name="description" content="Simple Note App" />
-                <link rel="icon" href="/assets/images/ProNoteLogo.png" />
-            </Head>
+        <SessionProvider session={pageProps.session}>
+            <Provider store={store}>
+                <Head>
+                    <title>PRO-NOTE</title>
+                    <meta charSet="UTF-8" />
+                    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                    <meta name="description" content="Simple Note App" />
+                    <link rel="icon" href="/assets/images/ProNoteLogo.png" />
+                </Head>
 
-            {getLayout(<Component {...pageProps} />)}
-        </Provider>
+                {getLayout(<Component {...pageProps} />)}
+            </Provider>
+        </SessionProvider>
     );
 };
 export default appWithI18Next(App, ni18nConfig);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -7,6 +7,12 @@ import { toggleLocale, toggleTheme } from '../../store/themeConfigSlice';
 import { useTranslation } from 'react-i18next';
 import { toggleSidebar } from '../../store/themeConfigSlice';
 import Dropdown from '../Dropdown';
+import { useSession, signIn, signOut } from "next-auth/react";
+import { Dialog, Transition } from '@headlessui/react';
+import { FaUserAltSlash } from 'react-icons/fa';
+import { Tab } from '@headlessui/react';
+import Swal from 'sweetalert2';
+import axios from 'axios';
 
 const Header = () => {
     const router = useRouter();
@@ -115,6 +121,70 @@ const Header = () => {
 
     const { t, i18n } = useTranslation();
 
+    const { data: session } = useSession();
+
+    const [loginModal, setLoginModal] = useState(false);
+    const [loginEmail, setLoginEmail] = useState('');
+    const [loginPassword, setLoginPassword] = useState('');
+    const [joinParams, setJoinParams] = useState({ email: '', name: '', nick: '', password: '' });
+
+    const changeLoginFormItem = (event: any) => {
+        const value = event.currentTarget.value;
+        if (event.currentTarget.getAttribute('id') === 'login_email') setLoginEmail(value); else setLoginPassword(value);
+        //console.log(value);
+    };
+    const showMessage = (msg = '', type = 'success') => {
+        const toast: any = Swal.mixin({
+            toast: true,
+            position: isRtl ? 'top-start' : 'top-end',
+            showConfirmButton: false,
+            showCloseButton: true,
+            timer: 3000,
+            customClass: { container: 'toast' },
+        });
+        toast.fire({
+            icon: type,
+            title: msg,
+            padding: '10px 20px',
+        });
+    };
+    const userLogin = async (event: any) => {
+        event.preventDefault();
+        
+        const axiosData = { module: 'userLogin', email: loginEmail, password: loginPassword };
+        const result = await axios.post('/api/user', axiosData);
+        console.log(result.data);
+        //affectedRows: 1, fieldCount: 0, info: "", insertId: 1, serverStatus: 2, warningStatus: 0
+
+        if (result.data.result) {
+            setLoginEmail('');
+            setLoginPassword('');
+            setLoginModal(false);
+        } else {
+            showMessage(result.data.msg, 'error');
+        }
+    };
+    const userJoin = async (event: any) => {
+        event.preventDefault();
+        
+        const axiosData = { module: 'userJoin', ...joinParams };
+        const result = await axios.post('/api/user', axiosData);
+        console.log(result.data);
+        //affectedRows: 1, fieldCount: 0, info: "", insertId: 1, serverStatus: 2, warningStatus: 0
+
+        if (result.data.affectedRows) {
+            setJoinParams({ email: '', name: '', nick: '', password: '' });
+            setLoginModal(false);
+        } else {
+            showMessage(result.data.msg, 'error');
+        }
+    };
+    const changeJoinFormValue = (e: any) => {
+        const { value, id } = e.target;
+        setJoinParams({ ...joinParams, [id]: value });
+        //console.log({ ...joinParams, [id]: value });
+    };
+
     return (
         <header className={themeConfig.semidark && themeConfig.menu === 'horizontal' ? 'dark' : ''}>
             <div className="shadow-sm">
@@ -122,7 +192,7 @@ const Header = () => {
                     <div className="horizontal-logo flex items-center justify-between ltr:mr-2 rtl:ml-2 lg:hidden">
                         <Link href="/" className="main-logo flex shrink-0 items-center">
                             <img className="inline w-8 ltr:-ml-1 rtl:-mr-1" src="/assets/images/ProNoteLogo.png" alt="logo" />
-                            <span className="hidden align-middle text-2xl  font-semibold  transition-all duration-300 ltr:ml-1.5 rtl:mr-1.5 dark:text-white-light md:inline">VRISTO</span>
+                            <span className="hidden align-middle text-2xl  font-semibold  transition-all duration-300 ltr:ml-1.5 rtl:mr-1.5 dark:text-white-light md:inline">{/*VRISTO*/}Pro-Note</span>
                         </Link>
                         <button
                             type="button"
@@ -516,101 +586,305 @@ const Header = () => {
                             </Dropdown>
                         </div>
                         <div className="dropdown flex shrink-0">
-                            <Dropdown
-                                offset={[0, 8]}
-                                placement={`${isRtl ? 'bottom-start' : 'bottom-end'}`}
-                                btnClassName="relative group block"
-                                button={<img className="h-9 w-9 rounded-full object-cover saturate-50 group-hover:saturate-100" src="/assets/images/user-profile.jpeg" alt="userProfile" />}
-                            >
-                                <ul className="w-[230px] !py-0 font-semibold text-dark dark:text-white-dark dark:text-white-light/90">
-                                    <li>
-                                        <div className="flex items-center px-4 py-4">
-                                            <img className="h-10 w-10 rounded-md object-cover" src="/assets/images/user-profile.jpeg" alt="userProfile" />
-                                            <div className="ltr:pl-4 rtl:pr-4">
-                                                <h4 className="text-base">
-                                                    John Doe
-                                                    <span className="rounded bg-success-light px-1 text-xs text-success ltr:ml-2 rtl:ml-2">Pro</span>
-                                                </h4>
-                                                <button type="button" className="text-black/60 hover:text-primary dark:text-dark-light/60 dark:hover:text-white">
-                                                    johndoe@gmail.com
-                                                </button>
+                            {session ? 
+                                <Dropdown
+                                    offset={[0, 8]}
+                                    placement={`${isRtl ? 'bottom-start' : 'bottom-end'}`}
+                                    btnClassName="relative group block"
+                                    button={<img className="h-9 w-9 rounded-full object-cover saturate-50 group-hover:saturate-100" src="/assets/images/user-profile.jpeg" alt="userProfile" />}
+                                >
+                                    <ul className="w-[230px] !py-0 font-semibold text-dark dark:text-white-dark dark:text-white-light/90">
+                                        <li>
+                                            <div className="flex items-center px-4 py-4">
+                                                <img className="h-10 w-10 rounded-md object-cover" src="/assets/images/user-profile.jpeg" alt="userProfile" />
+                                                <div className="ltr:pl-4 rtl:pr-4">
+                                                    <h4 className="text-base">
+                                                        John Doe
+                                                        <span className="rounded bg-success-light px-1 text-xs text-success ltr:ml-2 rtl:ml-2">Pro</span>
+                                                    </h4>
+                                                    <button type="button" className="text-black/60 hover:text-primary dark:text-dark-light/60 dark:hover:text-white">
+                                                        johndoe@gmail.com
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <Link href="/users/profile" className="dark:hover:text-white">
-                                            <svg className="ltr:mr-2 rtl:ml-2" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <circle cx="12" cy="6" r="4" stroke="currentColor" strokeWidth="1.5" />
-                                                <path
-                                                    opacity="0.5"
-                                                    d="M20 17.5C20 19.9853 20 22 12 22C4 22 4 19.9853 4 17.5C4 15.0147 7.58172 13 12 13C16.4183 13 20 15.0147 20 17.5Z"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                />
-                                            </svg>
-                                            Profile
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href="/apps/mailbox" className="dark:hover:text-white">
-                                            <svg className="ltr:mr-2 rtl:ml-2" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path
-                                                    opacity="0.5"
-                                                    d="M2 12C2 8.22876 2 6.34315 3.17157 5.17157C4.34315 4 6.22876 4 10 4H14C17.7712 4 19.6569 4 20.8284 5.17157C22 6.34315 22 8.22876 22 12C22 15.7712 22 17.6569 20.8284 18.8284C19.6569 20 17.7712 20 14 20H10C6.22876 20 4.34315 20 3.17157 18.8284C2 17.6569 2 15.7712 2 12Z"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                />
-                                                <path
-                                                    d="M6 8L8.1589 9.79908C9.99553 11.3296 10.9139 12.0949 12 12.0949C13.0861 12.0949 14.0045 11.3296 15.8411 9.79908L18 8"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                    strokeLinecap="round"
-                                                />
-                                            </svg>
-                                            Inbox
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href="/auth/boxed-lockscreen" className="dark:hover:text-white">
-                                            <svg className="ltr:mr-2 rtl:ml-2" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path
-                                                    d="M2 16C2 13.1716 2 11.7574 2.87868 10.8787C3.75736 10 5.17157 10 8 10H16C18.8284 10 20.2426 10 21.1213 10.8787C22 11.7574 22 13.1716 22 16C22 18.8284 22 20.2426 21.1213 21.1213C20.2426 22 18.8284 22 16 22H8C5.17157 22 3.75736 22 2.87868 21.1213C2 20.2426 2 18.8284 2 16Z"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                />
-                                                <path opacity="0.5" d="M6 10V8C6 4.68629 8.68629 2 12 2C15.3137 2 18 4.68629 18 8V10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                                                <g opacity="0.5">
-                                                    <path d="M9 16C9 16.5523 8.55228 17 8 17C7.44772 17 7 16.5523 7 16C7 15.4477 7.44772 15 8 15C8.55228 15 9 15.4477 9 16Z" fill="currentColor" />
+                                        </li>
+                                        <li>
+                                            <Link href="/users/profile" className="dark:hover:text-white">
+                                                <svg className="ltr:mr-2 rtl:ml-2" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <circle cx="12" cy="6" r="4" stroke="currentColor" strokeWidth="1.5" />
                                                     <path
-                                                        d="M13 16C13 16.5523 12.5523 17 12 17C11.4477 17 11 16.5523 11 16C11 15.4477 11.4477 15 12 15C12.5523 15 13 15.4477 13 16Z"
-                                                        fill="currentColor"
+                                                        opacity="0.5"
+                                                        d="M20 17.5C20 19.9853 20 22 12 22C4 22 4 19.9853 4 17.5C4 15.0147 7.58172 13 12 13C16.4183 13 20 15.0147 20 17.5Z"
+                                                        stroke="currentColor"
+                                                        strokeWidth="1.5"
+                                                    />
+                                                </svg>
+                                                Profile
+                                            </Link>
+                                        </li>
+                                        <li>
+                                            <Link href="/apps/mailbox" className="dark:hover:text-white">
+                                                <svg className="ltr:mr-2 rtl:ml-2" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path
+                                                        opacity="0.5"
+                                                        d="M2 12C2 8.22876 2 6.34315 3.17157 5.17157C4.34315 4 6.22876 4 10 4H14C17.7712 4 19.6569 4 20.8284 5.17157C22 6.34315 22 8.22876 22 12C22 15.7712 22 17.6569 20.8284 18.8284C19.6569 20 17.7712 20 14 20H10C6.22876 20 4.34315 20 3.17157 18.8284C2 17.6569 2 15.7712 2 12Z"
+                                                        stroke="currentColor"
+                                                        strokeWidth="1.5"
                                                     />
                                                     <path
-                                                        d="M17 16C17 16.5523 16.5523 17 16 17C15.4477 17 15 16.5523 15 16C15 15.4477 15.4477 15 16 15C16.5523 15 17 15.4477 17 16Z"
-                                                        fill="currentColor"
+                                                        d="M6 8L8.1589 9.79908C9.99553 11.3296 10.9139 12.0949 12 12.0949C13.0861 12.0949 14.0045 11.3296 15.8411 9.79908L18 8"
+                                                        stroke="currentColor"
+                                                        strokeWidth="1.5"
+                                                        strokeLinecap="round"
                                                     />
-                                                </g>
-                                            </svg>
-                                            Lock Screen
-                                        </Link>
-                                    </li>
-                                    <li className="border-t border-white-light dark:border-white-light/10">
-                                        <Link href="/auth/boxed-signin" className="!py-3 text-danger">
-                                            <svg className="rotate-90 ltr:mr-2 rtl:ml-2" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path
-                                                    opacity="0.5"
-                                                    d="M17 9.00195C19.175 9.01406 20.3529 9.11051 21.1213 9.8789C22 10.7576 22 12.1718 22 15.0002V16.0002C22 18.8286 22 20.2429 21.1213 21.1215C20.2426 22.0002 18.8284 22.0002 16 22.0002H8C5.17157 22.0002 3.75736 22.0002 2.87868 21.1215C2 20.2429 2 18.8286 2 16.0002L2 15.0002C2 12.1718 2 10.7576 2.87868 9.87889C3.64706 9.11051 4.82497 9.01406 7 9.00195"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                    strokeLinecap="round"
-                                                />
-                                                <path d="M12 15L12 2M12 2L15 5.5M12 2L9 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                            </svg>
-                                            Sign Out
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </Dropdown>
+                                                </svg>
+                                                Inbox
+                                            </Link>
+                                        </li>
+                                        <li>
+                                            <Link href="/auth/boxed-lockscreen" className="dark:hover:text-white">
+                                                <svg className="ltr:mr-2 rtl:ml-2" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path
+                                                        d="M2 16C2 13.1716 2 11.7574 2.87868 10.8787C3.75736 10 5.17157 10 8 10H16C18.8284 10 20.2426 10 21.1213 10.8787C22 11.7574 22 13.1716 22 16C22 18.8284 22 20.2426 21.1213 21.1213C20.2426 22 18.8284 22 16 22H8C5.17157 22 3.75736 22 2.87868 21.1213C2 20.2426 2 18.8284 2 16Z"
+                                                        stroke="currentColor"
+                                                        strokeWidth="1.5"
+                                                    />
+                                                    <path opacity="0.5" d="M6 10V8C6 4.68629 8.68629 2 12 2C15.3137 2 18 4.68629 18 8V10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                                                    <g opacity="0.5">
+                                                        <path d="M9 16C9 16.5523 8.55228 17 8 17C7.44772 17 7 16.5523 7 16C7 15.4477 7.44772 15 8 15C8.55228 15 9 15.4477 9 16Z" fill="currentColor" />
+                                                        <path
+                                                            d="M13 16C13 16.5523 12.5523 17 12 17C11.4477 17 11 16.5523 11 16C11 15.4477 11.4477 15 12 15C12.5523 15 13 15.4477 13 16Z"
+                                                            fill="currentColor"
+                                                        />
+                                                        <path
+                                                            d="M17 16C17 16.5523 16.5523 17 16 17C15.4477 17 15 16.5523 15 16C15 15.4477 15.4477 15 16 15C16.5523 15 17 15.4477 17 16Z"
+                                                            fill="currentColor"
+                                                        />
+                                                    </g>
+                                                </svg>
+                                                Lock Screen
+                                            </Link>
+                                        </li>
+                                        <li className="border-t border-white-light dark:border-white-light/10">
+                                            <Link href="/auth/boxed-signin" className="!py-3 text-danger">
+                                                <svg className="rotate-90 ltr:mr-2 rtl:ml-2" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path
+                                                        opacity="0.5"
+                                                        d="M17 9.00195C19.175 9.01406 20.3529 9.11051 21.1213 9.8789C22 10.7576 22 12.1718 22 15.0002V16.0002C22 18.8286 22 20.2429 21.1213 21.1215C20.2426 22.0002 18.8284 22.0002 16 22.0002H8C5.17157 22.0002 3.75736 22.0002 2.87868 21.1215C2 20.2429 2 18.8286 2 16.0002L2 15.0002C2 12.1718 2 10.7576 2.87868 9.87889C3.64706 9.11051 4.82497 9.01406 7 9.00195"
+                                                        stroke="currentColor"
+                                                        strokeWidth="1.5"
+                                                        strokeLinecap="round"
+                                                    />
+                                                    <path d="M12 15L12 2M12 2L15 5.5M12 2L9 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                                Sign Out
+                                            </Link>
+                                        </li>
+                                    </ul>
+                                </Dropdown>
+                             : 
+                                <>
+                                    <button
+                                        className={`${
+                                            themeConfig.theme === 'dark' &&
+                                            'flex items-center rounded-full bg-white-light/40 p-2 hover:bg-white-light/90 hover:text-primary dark:bg-dark/40 dark:hover:bg-dark/60'
+                                        }`}
+                                        onClick={() => setLoginModal(true)}
+                                    >
+                                    <FaUserAltSlash style={{width: '20px', height: '20px'}} />
+                                    </button>
+                                    <Transition appear show={loginModal} as={Fragment}>
+                                        <Dialog as="div" open={loginModal} onClose={() => setLoginModal(false)} className="relative z-50">
+                                            <Transition.Child
+                                                as={Fragment}
+                                                enter="ease-out duration-300"
+                                                enterFrom="opacity-0"
+                                                enterTo="opacity-100"
+                                                leave="ease-in duration-200"
+                                                leaveFrom="opacity-100"
+                                                leaveTo="opacity-0"
+                                            >
+                                                <div className="fixed inset-0 bg-[black]/60" />
+                                            </Transition.Child>
+                
+                                            <div className="fixed inset-0 overflow-y-auto">
+                                                <div className="flex min-h-full items-center justify-center px-4 py-8">
+                                                    <Transition.Child
+                                                        as={Fragment}
+                                                        enter="ease-out duration-300"
+                                                        enterFrom="opacity-0 scale-95"
+                                                        enterTo="opacity-100 scale-100"
+                                                        leave="ease-in duration-200"
+                                                        leaveFrom="opacity-100 scale-100"
+                                                        leaveTo="opacity-0 scale-95"
+                                                    >
+                                                        <Dialog.Panel className="panel w-full max-w-lg overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setLoginModal(false)}
+                                                                className="absolute top-4 text-gray-400 outline-none hover:text-gray-800 ltr:right-4 rtl:left-4 dark:hover:text-gray-600"
+                                                            >
+                                                                <svg
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                    width="24"
+                                                                    height="24"
+                                                                    viewBox="0 0 24 24"
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    strokeWidth="1.5"
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                >
+                                                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                                </svg>
+                                                            </button>
+                                                            <div className="p-5">
+                                                                <Tab.Group>
+                                                                    <Tab.List className="flex flex-wrap">
+                                                                        <Tab as={Fragment}>
+                                                                            {({ selected }) => (
+                                                                                <button
+                                                                                    className={`${selected ? 'bg-primary text-white !outline-none' : ''}
+                                                                                    -mb-[1px] block rounded p-3.5 py-2 hover:bg-primary hover:text-white ltr:mr-2 rtl:ml-2`}>
+                                                                                    SIGN IN
+                                                                                </button>
+                                                                            )}
+                                                                        </Tab>
+                                                                        <Tab as={Fragment}>
+                                                                            {({ selected }) => (
+                                                                                <button
+                                                                                    className={`${selected ? 'bg-primary text-white !outline-none' : ''}
+                                                                                    -mb-[1px] block rounded p-3.5 py-2 hover:bg-primary hover:text-white ltr:mr-2 rtl:ml-2`}>
+                                                                                    SIGN UP
+                                                                                </button>
+                                                                            )}
+                                                                        </Tab>
+                                                                    </Tab.List>
+                                                                    <Tab.Panels>
+                                                                        <Tab.Panel>
+                                                                            <div className="p-5">
+                                                                                <form onSubmit={userLogin} autoComplete="off">
+                                                                                    <div className="relative mb-4">
+                                                                                        <span className="absolute ltr:left-3 rtl:right-3 top-1/2 -translate-y-1/2 dark:text-white-dark">
+                                                                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                                                <circle cx="12" cy="6" r="4" stroke="currentColor" strokeWidth="1.5" />
+                                                                                                <ellipse opacity="0.5" cx="12" cy="17" rx="7" ry="4" stroke="currentColor" strokeWidth="1.5" />
+                                                                                            </svg>
+                                                                                        </span>
+                                                                                        <input type="email" value={loginEmail} onChange={changeLoginFormItem} placeholder="Email" className="form-input ltr:pl-10 rtl:pr-10" id="login_email" required />
+                                                                                    </div>
+                                                                                    <div className="relative mb-4">
+                                                                                        <span className="absolute ltr:left-3 rtl:right-3 top-1/2 -translate-y-1/2 dark:text-white-dark">
+                                                                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5">
+                                                                                                <path
+                                                                                                    d="M2 16C2 13.1716 2 11.7574 2.87868 10.8787C3.75736 10 5.17157 10 8 10H16C18.8284 10 20.2426 10 21.1213 10.8787C22 11.7574 22 13.1716 22 16C22 18.8284 22 20.2426 21.1213 21.1213C20.2426 22 18.8284 22 16 22H8C5.17157 22 3.75736 22 2.87868 21.1213C2 20.2426 2 18.8284 2 16Z"
+                                                                                                    stroke="currentColor"
+                                                                                                    strokeWidth="1.5"
+                                                                                                />
+                                                                                                <path
+                                                                                                    opacity="0.5"
+                                                                                                    d="M6 10V8C6 4.68629 8.68629 2 12 2C15.3137 2 18 4.68629 18 8V10"
+                                                                                                    stroke="currentColor"
+                                                                                                    strokeWidth="1.5"
+                                                                                                    strokeLinecap="round"
+                                                                                                />
+                                                                                            </svg>
+                                                                                        </span>
+                                                                                        <input type="password" value={loginPassword} onChange={changeLoginFormItem} minLength={8} maxLength={20} placeholder="Password" className="form-input ltr:pl-10 rtl:pr-10" id="login_password" required />
+                                                                                    </div>
+                                                                                    <button type="submit" className="btn btn-primary w-full">
+                                                                                        Login
+                                                                                    </button>
+                                                                                </form>
+                                                                            </div>
+                                                                            <div className="flex items-center justify-center gap-3">
+                                                                                <button type="button" onClick={() => signIn('google')} className="btn btn-outline-primary flex gap-1">
+                                                                                    <span>Google</span>
+                                                                                </button>
+                                                                                <button type="button" onClick={() => signIn('naver')} className="btn btn-outline-success flex gap-1">
+                                                                                    <span>Naver</span>
+                                                                                </button>
+                                                                                <button type="button" onClick={() => signIn('kakao')} className="btn btn-outline-warning flex gap-1">
+                                                                                    <span>Kakao</span>
+                                                                                </button>
+                                                                            </div>
+                                                                        </Tab.Panel>
+                                                                        <Tab.Panel>
+                                                                            <div className="p-5">
+                                                                                <form onSubmit={() => {}} autoComplete="off">
+                                                                                    <div className="relative mb-4">
+                                                                                        <span className="absolute ltr:left-3 rtl:right-3 top-1/2 -translate-y-1/2 dark:text-white-dark">
+                                                                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5">
+                                                                                                <path
+                                                                                                    d="M12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 12.7215 17.8726 13.4133 17.6392 14.054C17.5551 14.285 17.4075 14.4861 17.2268 14.6527L17.1463 14.727C16.591 15.2392 15.7573 15.3049 15.1288 14.8858C14.6735 14.5823 14.4 14.0713 14.4 13.5241V12M14.4 12C14.4 13.3255 13.3255 14.4 12 14.4C10.6745 14.4 9.6 13.3255 9.6 12C9.6 10.6745 10.6745 9.6 12 9.6C13.3255 9.6 14.4 10.6745 14.4 12Z"
+                                                                                                    stroke="currentColor"
+                                                                                                    strokeWidth="1.5"
+                                                                                                    strokeLinecap="round"
+                                                                                                />
+                                                                                                <path
+                                                                                                    opacity="0.5"
+                                                                                                    d="M2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12Z"
+                                                                                                    stroke="currentColor"
+                                                                                                    strokeWidth="1.5"
+                                                                                                />
+                                                                                            </svg>
+                                                                                        </span>
+                                                                                        <input type="email" value={joinParams.email} onChange={changeJoinFormValue} placeholder="Email" className="form-input ltr:pl-10 rtl:pr-10" id="email" required />
+                                                                                    </div>
+                                                                                    <div className="relative mb-4">
+                                                                                        <span className="absolute ltr:left-3 rtl:right-3 top-1/2 -translate-y-1/2 dark:text-white-dark">
+                                                                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5">
+                                                                                                <path
+                                                                                                    d="M2 16C2 13.1716 2 11.7574 2.87868 10.8787C3.75736 10 5.17157 10 8 10H16C18.8284 10 20.2426 10 21.1213 10.8787C22 11.7574 22 13.1716 22 16C22 18.8284 22 20.2426 21.1213 21.1213C20.2426 22 18.8284 22 16 22H8C5.17157 22 3.75736 22 2.87868 21.1213C2 20.2426 2 18.8284 2 16Z"
+                                                                                                    stroke="currentColor"
+                                                                                                    strokeWidth="1.5"
+                                                                                                />
+                                                                                                <path
+                                                                                                    opacity="0.5"
+                                                                                                    d="M6 10V8C6 4.68629 8.68629 2 12 2C15.3137 2 18 4.68629 18 8V10"
+                                                                                                    stroke="currentColor"
+                                                                                                    strokeWidth="1.5"
+                                                                                                    strokeLinecap="round"
+                                                                                                />
+                                                                                            </svg>
+                                                                                        </span>
+                                                                                        <input type="password" value={joinParams.password} onChange={changeJoinFormValue} placeholder="Password" minLength={8} maxLength={20} className="form-input ltr:pl-10 rtl:pr-10" id="password" required />
+                                                                                    </div>
+                                                                                    <div className="relative mb-4">
+                                                                                        <span className="absolute ltr:left-3 rtl:right-3 top-1/2 -translate-y-1/2 dark:text-white-dark">
+                                                                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                                                <circle cx="12" cy="6" r="4" stroke="currentColor" strokeWidth="1.5" />
+                                                                                                <ellipse opacity="0.5" cx="12" cy="17" rx="7" ry="4" stroke="currentColor" strokeWidth="1.5" />
+                                                                                            </svg>
+                                                                                        </span>
+                                                                                        <input type="text" value={joinParams.name} onChange={changeJoinFormValue} placeholder="Name" minLength={2} maxLength={255} className="form-input ltr:pl-10 rtl:pr-10" id="name" required />
+                                                                                    </div>
+                                                                                    <div className="relative mb-4">
+                                                                                        <span className="absolute ltr:left-3 rtl:right-3 top-1/2 -translate-y-1/2 dark:text-white-dark">
+                                                                                            <svg fill="none" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+                                                                                                <g stroke="#1c274c" stroke-width="1.5"><circle cx="10" cy="6" r="4"/><g stroke-linecap="round"><path d="m19 2s2 1.2 2 4-2 4-2 4"/><path d="m17 4s1 .6 1 2-1 2-1 2"/><path d="m13 20.6151c-.9093.2468-1.9264.3849-3 .3849-3.86599 0-7-1.7909-7-4s3.13401-4 7-4c3.866 0 7 1.7909 7 4 0 .3453-.0766.6804-.2205 1"/></g></g>
+                                                                                            </svg>
+                                                                                        </span>
+                                                                                        <input type="text" placeholder="Nick" value={joinParams.nick} onChange={changeJoinFormValue} minLength={2} maxLength={255} className="form-input ltr:pl-10 rtl:pr-10" id="nick" required />
+                                                                                    </div>
+                                                                                    <button type="submit" className="btn btn-primary w-full">
+                                                                                        Submit
+                                                                                    </button>
+                                                                                </form>
+                                                                            </div>
+                                                                        </Tab.Panel>
+                                                                    </Tab.Panels>
+                                                                </Tab.Group>
+                                                            </div>
+                                                        </Dialog.Panel>
+                                                    </Transition.Child>
+                                                </div>
+                                            </div>
+                                        </Dialog>
+                                    </Transition>
+                                </>
+                            }
                         </div>
                     </div>
                 </div>
