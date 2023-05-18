@@ -29,9 +29,7 @@ export default function user(req : NextApiRequest, res : NextApiResponse) {
                     KEY nick (nick)
                 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='회원 테이블';`;
     } else if (db.escape(req.body.module) === "'userLogin'") {
-        let page = Number(req.body.page);
-
-        sql = `select id, email, AES_DECRYPT(UNHEX(password), '${process.env.DB_SECRET_KEY}') as password, name, nick, image, created  from users where email = ${db.escape(req.body.email)};`;
+        sql = `select email, AES_DECRYPT(UNHEX(password), '${process.env.DB_SECRET_KEY}') as password from users where email = ${db.escape(req.body.email)};`;
         //console.log(sql);
 
         db.query(sql,
@@ -40,67 +38,89 @@ export default function user(req : NextApiRequest, res : NextApiResponse) {
                     console.log(err);
                 } else {
                     //console.log(result);
+
                     if (!result[0]) {
-                        res.json({ result: false, msg: `${req.body.email} 회원이 존재하지 않습니다.`});
+                        res.json({ result: false, msg: `${req.body.email} 회원이 존재하지 않습니다.` });
+                        return;
                     }
-                    if (result[0].password !== req.body.email) {
-                        res.json({ result: false, msg: `비밀번호가 일치하지 않습니다.`});
+                    if (result[0].password !== req.body.password) {
+                        res.json({ result: false, msg: `비밀번호가 일치하지 않습니다.` });
+                        return;
                     }
 
-                    // totalCount = Number(result[0].cnt);
-                    // totalPage = Math.ceil(totalCount / rows);
-                    // if (page < 1) page = 1;
-                    // const from_record = (page - 1) * rows;
-
-                    // sql = `select id, tags, title, description, created from notes 
-                    //             where user = ${db.escape(req.body.user)} 
-                    //             order by idx desc
-                    //             limit ${from_record}, ${rows};
-                    //         select id, title, color from tags 
-                    //             where category = 'note' and user = ${db.escape(req.body.user)} 
-                    //             order by seq asc, idx asc;
-                    //         select ${totalCount} as totalCount, ${totalPage} as totalPage;`;
-                    // //console.log(sql);
-                    
-                    // db.query(sql,
-                    //     function (err: any, result: any) {
-                    //         if (err) {
-                    //             console.log(err);
-                    //         } else {
-                    //             //console.log(result);
-            
-                    //             res.json(result);
-                    //         }
-                    //     }
-                    // );
+                    res.json({ result: true, user: { email: result[0].email } });
                 }
             }
         );
-    } else if (db.escape(req.body.module) === "'noteUpdate'") {
-        if (db.escape(req.body.id) === "''") {
-            moment.locale('ko');
-            const now        = moment();
-            const fullDate   = now.format('YYYY-MM-DD HH:mm:ss');
-            sql = `insert into notes set 
-                        id               = '${uuidv4()}', 
-                        tags             = ${db.escape(req.body.tags)}, 
-                        title            = ${db.escape(req.body.title)}, 
-                        description      = ${db.escape(req.body.description)}, 
-                        user             = ${db.escape(req.body.user)},
-                        created          = '${fullDate}';`;
-        } else {
-            sql = `update notes set 
-                            tags             = ${db.escape(req.body.tags)}, 
-                            title            = ${db.escape(req.body.title)}, 
-                            description      = ${db.escape(req.body.description)}
-                        where id = ${db.escape(req.body.id)};`;
-        }
-    } else if (db.escape(req.body.module) === "'notegDelete'") {
-        sql = `delete from notes where id = ${db.escape(req.body.id)}`;
+    } else if (db.escape(req.body.module) === "'userJoin'") {
+        sql = `select id from users where email = ${db.escape(req.body.email)};
+                select id from users where nick = ${db.escape(req.body.nick)};`;
+        //console.log(sql);
+
+        db.query(sql,
+            function (err: any, result: any) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    //console.log(result);
+
+                    if (result[0].length) {
+                        res.json({ result: false, msg: `이미 ${req.body.email} 회원이 가입되어 있습니다.` });
+                        return;
+                    }
+                    if (result[1].length) {
+                        res.json({ result: false, msg: `${req.body.nick} Nick Name은 이미 사용중 입니다.` });
+                        return;
+                    }
+
+                    moment.locale('ko');
+                    const now        = moment();
+                    const fullDate   = now.format('YYYY-MM-DD HH:mm:ss');
+                    sql = `insert into users set 
+                                id               = '${uuidv4()}', 
+                                email            = ${db.escape(req.body.email)}, 
+                                password         = HEX(AES_ENCRYPT(${db.escape(req.body.password)}, '${process.env.DB_SECRET_KEY}')), 
+                                name             = ${db.escape(req.body.name)}, 
+                                nick             = ${db.escape(req.body.nick)},
+                                created          = '${fullDate}';`;
+                    //console.log(sql);
+                    
+                    db.query(sql,
+                        function (err: any, result: any) {
+                            if (err) {
+                                console.log(err);
+                            } else {
+                                //console.log(result);
+                                if (result.affectedRows) res.json({ result: true }); else res.json({ result: false, msg: `회원가입에 실패했습니다.` });
+                            }
+                        }
+                    );
+                }
+            }
+        );
+    } else if (db.escape(req.body.module) === "'userUpdate'") {
+        sql = `update users set 
+                        email            = ${db.escape(req.body.email)}, 
+                        password         = HEX(AES_ENCRYPT(${db.escape(req.body.password)}, '${process.env.DB_SECRET_KEY}')), 
+                        name             = ${db.escape(req.body.name)}, 
+                        nick             = ${db.escape(req.body.nick)}
+                    where id = ${db.escape(req.body.id)}`;
+    } else if (db.escape(req.body.module) === "'findUser'") {
+        sql = `select id, email, name, nick, image, created  from users where email = ${db.escape(req.body.email)};`;
+    } else if (db.escape(req.body.module) === "'findNick'") {
+        sql = `select id from users where nick = ${db.escape(req.body.nick)} and email = ${db.escape(req.body.email)};`;
+    } else if (db.escape(req.body.module) === "'userInsert'") {
+        sql = `insert into users set 
+                    id               = ${db.escape(req.body.id)}, 
+                    email            = ${db.escape(req.body.email)}, 
+                    name             = ${db.escape(req.body.name)}, 
+                    nick             = ${db.escape(req.body.nick)},
+                    image            = ${db.escape(req.body.image)},
+                    created          = ${db.escape(req.body.created)};`;
     }
     //console.log(sql);
 
-    if (db.escape(req.body.module) !== "'notesLoad'") {
+    if (db.escape(req.body.module) !== "'userLogin'" && db.escape(req.body.module) !== "'userJoin'") {
         db.query(sql,
             function (err: any, result: any) {
                 if (err) {

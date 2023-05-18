@@ -93,7 +93,7 @@ export default function notes(req : NextApiRequest, res : NextApiResponse) {
                             description      = ${db.escape(req.body.description)}
                         where id = ${db.escape(req.body.id)};`;
         }
-    } else if (db.escape(req.body.module) === "'notegDelete'") {
+    } else if (db.escape(req.body.module) === "'noteDelete'") {
         sql = `delete from notes where id = ${db.escape(req.body.id)}`;
     } else if (db.escape(req.body.module) === "'fakeInsert'") {
         const data = [{"title":"Staff Accountant I","description":"aliquam non mauris morbi non lectus aliquam sit amet diam in magna bibendum imperdiet nullam orci pede venenatis non sodales sed tincidunt eu felis fusce posuere felis sed lacus morbi sem mauris laoreet ut rhoncus aliquet pulvinar sed nisl nunc rhoncus dui vel sem sed sagittis nam congue risus semper porta volutpat quam pede lobortis ligula sit amet eleifend pede libero quis orci nullam molestie nibh in lectus","created":"2022-05-26 04:44:13"},
@@ -1102,11 +1102,13 @@ export default function notes(req : NextApiRequest, res : NextApiResponse) {
 
         data.map((item: any) => {
             //console.log(id);
-            sqlArray.push(`('${uuidv4()}', '${tags[getRandom(1, 6) - 1]}', '${item.title}', '${item.description}', 'TEST', '${item.created}')`);
+            sqlArray.push(`('${uuidv4()}', '${tags[getRandom(1, 6) - 1]}', '${item.title}', '${item.description}', ${db.escape(req.body.user)}, '${item.created}')`);
         });
 
         sql = `insert into notes (id, tags, title, description, user, created) values ${sqlArray.join(',')};`;
-    }
+    } else if (db.escape(req.body.module) === "'noteUpdateUser'") {
+        sql = `update notes set user = ${db.escape(req.body.user)}`;
+    } 
     //console.log(sql);
 
     if (db.escape(req.body.module) !== "'notesLoad'") {

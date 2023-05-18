@@ -11,7 +11,13 @@ try {
         database: process.env.DB_NAME,
         charset: process.env.DB_CHARSET,
         timezone: process.env.DB_TIMEZONE,
-        multipleStatements: true
+        multipleStatements: true,
+        typeCast: function (field: any, next: any) {
+            if (field.type == 'VAR_STRING') {
+                return field.string();
+            }
+            return next();
+        }
     });
 } catch (err) {
     console.error(err);

@@ -17,9 +17,13 @@ import { Field, Form, Formik } from 'formik';
 import Select from 'react-select';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
+import { useSession } from 'next-auth/react';
 const ReactQuill = dynamic(import('react-quill'), { ssr: false });
 
 const Notes = () => {
+    const { data: session } = useSession();
+    //console.log(session);
+
     const pageCount = 5;
 
     const dispatch = useDispatch();
@@ -39,7 +43,7 @@ const Notes = () => {
     const [noteUpdating, setNoteUpdating] = useState(false);
 
     const fakeInsert = async () => {
-        const axiosData = { module: 'fakeInsert' };
+        const axiosData = { module: 'fakeInsert', user: session?.user.id };
         const result = await axios.post('/api/notes', axiosData);
         //console.log(result.data);
         //affectedRows: 1, fieldCount: 0, info: "", insertId: 1, serverStatus: 2, warningStatus: 0
@@ -196,7 +200,7 @@ const Notes = () => {
             newTags += tagsList[index].id;
         });
 
-        const axiosData = { module: 'noteUpdate', id: params.id, title: params.title, description: params.description, tags: newTags, user: 'TEST' };
+        const axiosData = { module: 'noteUpdate', id: params.id, title: params.title, description: params.description, tags: newTags, user: session?.user.id };
         const result = await axios.post('/api/notes', axiosData);
         //console.log(result.data);
 
@@ -223,7 +227,7 @@ const Notes = () => {
             cancelButtonText: '취소',
         }).then(async result => {
             if (result.isConfirmed) {
-                const axiosData = { module: 'notegDelete', id: id };
+                const axiosData = { module: 'noteDelete', id: id };
                 const result = await axios.post('/api/notes', axiosData);
                 //console.log(result.data);
 
@@ -247,8 +251,8 @@ const Notes = () => {
     const [notesList, setNotesList] = useState<Note[]>([]);
 
     useEffect(() => {
-        notesLoad();
-    }, [page]);
+        if (session) notesLoad();
+    }, [page, session]);
 
     const notesLoad = async () => {
         setIsViewNoteModal(false);
@@ -256,7 +260,7 @@ const Notes = () => {
         setNoteModal(false);
         setFilterTags('');
 
-        const axiosData = { module: 'notesLoad', user: 'TEST', page: page };
+        const axiosData = { module: 'notesLoad', user: session?.user.id, page: page };
         const result = await axios.post('/api/notes', axiosData);
 
         //console.log(result.data);
@@ -365,9 +369,9 @@ const Notes = () => {
     const [tagTitle, setTagTitle] = useState('');
     useEffect(() => {
         if (tagsModal === false) {
-            tagsLoad();
+            if (session) tagsLoad();
         }
-    }, [tagsModal]);
+    }, [tagsModal, session]);
     const tagColorChange = (event: any) => {
         const value = event.currentTarget.value;
         setTagColor(value);
@@ -383,7 +387,7 @@ const Notes = () => {
 
         setTagAdding(true);
         const seq = tagsList.length;
-        const axiosData = { module: 'tagAdd', category: 'note', user: 'TEST', color: tagColor, title: tagTitle, seq: seq };
+        const axiosData = { module: 'tagAdd', category: 'note', user: session?.user.id, color: tagColor, title: tagTitle, seq: seq };
         const result = await axios.post('/api/tags', axiosData);
         //console.log(result.data);
         //affectedRows: 1, fieldCount: 0, info: "", insertId: 1, serverStatus: 2, warningStatus: 0
@@ -479,7 +483,7 @@ const Notes = () => {
         });
     };
     const tagsLoad = async () => {
-        const axiosData = { module: 'tagsLoad', category: 'note', user: 'TEST' };
+        const axiosData = { module: 'tagsLoad', category: 'note', user: session?.user.id };
         const result = await axios.post('/api/tags', axiosData);
         setTagsList(result.data);
         //console.log(result.data);
@@ -574,162 +578,165 @@ const Notes = () => {
                         </div>
 
                         <div className="my-4 h-px w-full border-b border-white-light dark:border-[#1b2e4b] mb-3"></div>
-
-                        <PerfectScrollbar className="relative -mr-3.5 h-full grow pr-3.5">
-                            <div className="px-1 py-3 text-white-dark">
-                                <div className="flex justify-between">
-                                    <div>Tags</div>
-                                    <div>
-                                        <button type="button" onClick={() => setTagsModal(true)}>
-                                            <BsGear />
-                                        </button>
-                                    </div>
-                                </div>
-                                <Transition appear show={tagsModal} as={Fragment}>
-                                    <Dialog as="div" open={tagsModal} initialFocus={tagTitleRef} onClose={() => setTagsModal(true)}>
-                                        <Transition.Child
-                                            as={Fragment}
-                                            enter="ease-out duration-300"
-                                            enterFrom="opacity-0"
-                                            enterTo="opacity-100"
-                                            leave="ease-in duration-200"
-                                            leaveFrom="opacity-100"
-                                            leaveTo="opacity-0"
-                                        >
-                                            <div className="fixed inset-0" />
-                                        </Transition.Child>
-                                        <div className="fixed inset-0 bg-[black]/60 z-[999] overflow-y-auto">
-                                            <div className="flex items-center justify-center min-h-screen px-4">
-                                                <Transition.Child
-                                                    as={Fragment}
-                                                    enter="ease-out duration-300"
-                                                    enterFrom="opacity-0 scale-95"
-                                                    enterTo="opacity-100 scale-100"
-                                                    leave="ease-in duration-200"
-                                                    leaveFrom="opacity-100 scale-100"
-                                                    leaveTo="opacity-0 scale-95"
-                                                >
-                                                    <Dialog.Panel as="div" className="panel border-0 p-0 rounded-lg overflow-hidden w-full max-w-lg my-8 text-black dark:text-white-dark">
-                                                        <div className="flex bg-[#fbfbfb] dark:bg-[#121c2c] items-center justify-between px-5 py-3">
-                                                            <div className="font-bold text-lg">Tags Setting</div>
-                                                            <button type="button" onClick={() => setTagsModal(false)} className="text-white-dark hover:text-dark">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-                                                        <div className="px-5 pb-5">
-                                                            <div>
-                                                                <form onSubmit={tagAdd}>
-                                                                    <div className="flex">
-                                                                        <select value={tagColor} onChange={tagColorChange} className="form-select text-white-dark ltr:rounded-r-none rtl:rounded-l-none" required>
-                                                                            <option value="">Color</option>
-                                                                            <option value="primary" className="bg-primary text-white">Primary</option>
-                                                                            <option value="info" className="bg-info text-white">Info</option>
-                                                                            <option value="success" className="bg-success text-white">Success</option>
-                                                                            <option value="warning" className="bg-warning text-white">Warning</option>
-                                                                            <option value="danger" className="bg-danger text-white">Danger</option>
-                                                                        </select>
-                                                                        <input type="text" ref={tagTitleRef} value={tagTitle} onChange={tagTitleChange} placeholder="Tag" minLength={2} className="form-input ltr:rounded-r-none rtl:rounded-l-none ltr:rounded-l-none rtl:rounded-r-none" required />
-                                                                        <button type="submit" className="btn btn-primary max-sm:btn-sm ltr:rounded-l-none rtl:rounded-r-none">
-                                                                            {tagAdding === false ? <BsPlus /> : <FiLoader className="animate-ping" />}
-                                                                        </button>
-                                                                    </div>
-                                                                </form>
-                                                            </div>
-                                                            <div className="my-5">
-                                                                <ul>
-                                                                    <ReactSortable list={tagsList} setList={setTagsList} onChange={tagsSort} animation={200} handle=".handle" group="handler" ghostClass="gu-transit">
-                                                                        {tagsList.map((item: any, index) => {
-                                                                            return (
-                                                                                <li key={item.id} className="mb-2.5">
-                                                                                    <div className="flex">
-                                                                                        <select value={item.color} onChange={(event) => tagColorChange2(item.id, event)} className="form-select text-white-dark ltr:rounded-r-none rtl:rounded-l-none" required>
-                                                                                            <option value="" disabled>Color</option>
-                                                                                            <option value="primary" className="bg-primary text-white">Primary</option>
-                                                                                            <option value="info" className="bg-info text-white">Info</option>
-                                                                                            <option value="success" className="bg-success text-white">Success</option>
-                                                                                            <option value="warning" className="bg-warning text-white">Warning</option>
-                                                                                            <option value="danger" className="bg-danger text-white">Danger</option>
-                                                                                        </select>
-                                                                                        <input type="text" value={item.title} onChange={(event) => tagTitleChange2(item.id, event)} placeholder="Tag" minLength={3} className="form-input ltr:rounded-r-none rtl:rounded-l-none ltr:rounded-l-none rtl:rounded-r-none" required />
-                                                                                        <button type="button" onClick={tagUpdate} data-id={item.id} className="btn btn-primary max-sm:btn-sm rounded-l-none rounded-r-none">
-                                                                                            <BsCheckLg />
-                                                                                        </button>
-                                                                                        <button type="button" onClick={tagDelete} data-id={item.id} className="btn btn-danger max-sm:btn-sm rounded-l-none rounded-r-none">
-                                                                                            <BsTrash />
-                                                                                        </button>
-                                                                                        <button type="button" className="handle cursor-move btn btn-dark max-sm:btn-sm ltr:rounded-l-none rtl:rounded-r-none">
-                                                                                            <BsArrowDownUp />
-                                                                                        </button>
-                                                                                    </div>
-                                                                                </li>
-                                                                            );
-                                                                        })}
-                                                                    </ReactSortable>
-                                                                </ul>
-                                                            </div>
-                                                        </div>
-                                                    </Dialog.Panel>
-                                                </Transition.Child>
-                                            </div>
+                        {session && (
+                            <PerfectScrollbar className="relative -mr-3.5 h-full grow pr-3.5">
+                                <div className="px-1 py-3 text-white-dark">
+                                    <div className="flex justify-between">
+                                        <div>Tags</div>
+                                        <div>
+                                            <button type="button" onClick={() => setTagsModal(true)}>
+                                                <BsGear />
+                                            </button>
                                         </div>
-                                    </Dialog>
-                                </Transition>
-                            </div>
+                                    </div>
+                                    <Transition appear show={tagsModal} as={Fragment}>
+                                        <Dialog as="div" open={tagsModal} initialFocus={tagTitleRef} onClose={() => setTagsModal(true)}>
+                                            <Transition.Child
+                                                as={Fragment}
+                                                enter="ease-out duration-300"
+                                                enterFrom="opacity-0"
+                                                enterTo="opacity-100"
+                                                leave="ease-in duration-200"
+                                                leaveFrom="opacity-100"
+                                                leaveTo="opacity-0"
+                                            >
+                                                <div className="fixed inset-0" />
+                                            </Transition.Child>
+                                            <div className="fixed inset-0 bg-[black]/60 z-[999] overflow-y-auto">
+                                                <div className="flex items-center justify-center min-h-screen px-4">
+                                                    <Transition.Child
+                                                        as={Fragment}
+                                                        enter="ease-out duration-300"
+                                                        enterFrom="opacity-0 scale-95"
+                                                        enterTo="opacity-100 scale-100"
+                                                        leave="ease-in duration-200"
+                                                        leaveFrom="opacity-100 scale-100"
+                                                        leaveTo="opacity-0 scale-95"
+                                                    >
+                                                        <Dialog.Panel as="div" className="panel border-0 p-0 rounded-lg overflow-hidden w-full max-w-lg my-8 text-black dark:text-white-dark">
+                                                            <div className="flex bg-[#fbfbfb] dark:bg-[#121c2c] items-center justify-between px-5 py-3">
+                                                                <div className="font-bold text-lg">Tags Setting</div>
+                                                                <button type="button" onClick={() => setTagsModal(false)} className="text-white-dark hover:text-dark">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                            <div className="px-5 pb-5">
+                                                                <div>
+                                                                    <form onSubmit={tagAdd}>
+                                                                        <div className="flex">
+                                                                            <select value={tagColor} onChange={tagColorChange} className="form-select text-white-dark ltr:rounded-r-none rtl:rounded-l-none" required>
+                                                                                <option value="">Color</option>
+                                                                                <option value="primary" className="bg-primary text-white">Primary</option>
+                                                                                <option value="info" className="bg-info text-white">Info</option>
+                                                                                <option value="success" className="bg-success text-white">Success</option>
+                                                                                <option value="warning" className="bg-warning text-white">Warning</option>
+                                                                                <option value="danger" className="bg-danger text-white">Danger</option>
+                                                                            </select>
+                                                                            <input type="text" ref={tagTitleRef} value={tagTitle} onChange={tagTitleChange} placeholder="Tag" minLength={2} className="form-input ltr:rounded-r-none rtl:rounded-l-none ltr:rounded-l-none rtl:rounded-r-none" required />
+                                                                            <button type="submit" className="btn btn-primary max-sm:btn-sm ltr:rounded-l-none rtl:rounded-r-none">
+                                                                                {tagAdding === false ? <BsPlus /> : <FiLoader className="animate-ping" />}
+                                                                            </button>
+                                                                        </div>
+                                                                    </form>
+                                                                </div>
+                                                                <div className="my-5">
+                                                                    <ul>
+                                                                        <ReactSortable list={tagsList} setList={setTagsList} onChange={tagsSort} animation={200} handle=".handle" group="handler" ghostClass="gu-transit">
+                                                                            {tagsList.map((item: any, index) => {
+                                                                                return (
+                                                                                    <li key={item.id} className="mb-2.5">
+                                                                                        <div className="flex">
+                                                                                            <select value={item.color} onChange={(event) => tagColorChange2(item.id, event)} className="form-select text-white-dark ltr:rounded-r-none rtl:rounded-l-none" required>
+                                                                                                <option value="" disabled>Color</option>
+                                                                                                <option value="primary" className="bg-primary text-white">Primary</option>
+                                                                                                <option value="info" className="bg-info text-white">Info</option>
+                                                                                                <option value="success" className="bg-success text-white">Success</option>
+                                                                                                <option value="warning" className="bg-warning text-white">Warning</option>
+                                                                                                <option value="danger" className="bg-danger text-white">Danger</option>
+                                                                                            </select>
+                                                                                            <input type="text" value={item.title} onChange={(event) => tagTitleChange2(item.id, event)} placeholder="Tag" minLength={3} className="form-input ltr:rounded-r-none rtl:rounded-l-none ltr:rounded-l-none rtl:rounded-r-none" required />
+                                                                                            <button type="button" onClick={tagUpdate} data-id={item.id} className="btn btn-primary max-sm:btn-sm rounded-l-none rounded-r-none">
+                                                                                                <BsCheckLg />
+                                                                                            </button>
+                                                                                            <button type="button" onClick={tagDelete} data-id={item.id} className="btn btn-danger max-sm:btn-sm rounded-l-none rounded-r-none">
+                                                                                                <BsTrash />
+                                                                                            </button>
+                                                                                            <button type="button" className="handle cursor-move btn btn-dark max-sm:btn-sm ltr:rounded-l-none rtl:rounded-r-none">
+                                                                                                <BsArrowDownUp />
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </li>
+                                                                                );
+                                                                            })}
+                                                                        </ReactSortable>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </Dialog.Panel>
+                                                    </Transition.Child>
+                                                </div>
+                                            </div>
+                                        </Dialog>
+                                    </Transition>
+                                </div>
 
-                            <button type="button" className="flex h-10 w-full items-center rounded-md p-1 font-medium duration-300 hover:bg-white-dark/10 ltr:hover:pl-3 rtl:hover:pr-3 dark:hover:bg-[#181F32]" onClick={() => setFilterTags('')}>
-                                <BsCheck2All />
-                                <div className="ltr:ml-3 rtl:mr-3"><strong>ALL NOTES</strong></div>
+                                <button type="button" className="flex h-10 w-full items-center rounded-md p-1 font-medium duration-300 hover:bg-white-dark/10 ltr:hover:pl-3 rtl:hover:pr-3 dark:hover:bg-[#181F32]" onClick={() => setFilterTags('')}>
+                                    <BsCheck2All />
+                                    <div className="ltr:ml-3 rtl:mr-3"><strong>ALL NOTES</strong></div>
+                                </button>
+
+                                {tagsList.map((item: any) => {
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            type="button"
+                                            className=
+                                            {`flex h-10 w-full items-center rounded-md p-1 font-medium text-${item.color} duration-300 hover:bg-white-dark/10 ltr:hover:pl-3 rtl:hover:pr-3 dark:hover:bg-[#181F32] ${
+                                                filterTags === '${item.title}' && 'bg-gray-100 ltr:pl-3 rtl:pr-3 dark:bg-[#181F32]'
+                                            }`}
+                                            onClick={() => tabChanged(`${item.id}`)}
+                                        >
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 rotate-45 fill-${item.color}`}>
+                                                <path
+                                                    d="M2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C22 4.92893 22 7.28595 22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12Z"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.5"
+                                                ></path>
+                                            </svg>
+                                            <div className="ltr:ml-3 rtl:mr-3">{item.title}</div>
+                                        </button>
+                                    );
+                                })}
+                            </PerfectScrollbar>
+                        )}
+                    </div>
+                    {session && (
+                        <div className="absolute bottom-0 w-full p-4 ltr:left-0 rtl:right-0">
+                            {/*<button className="btn btn-success max-sm:btn-sm w-full mb-5" type="button" onClick={fakeInsert}>
+                                <svg className="h-5 w-5 ltr:mr-2 rtl:ml-2" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Fake Data Insert
+                            </button>*/}
+                            <button className="btn btn-danger max-sm:btn-sm w-full mb-5" type="button" onClick={truncateTags}>
+                                <BsTrash className="ltr:mr-2 rtl:ml-2" /> Truncate Tags
                             </button>
-
-                            {tagsList.map((item: any) => {
-                                return (
-                                    <button
-                                        key={item.id}
-                                        type="button"
-                                        className=
-                                        {`flex h-10 w-full items-center rounded-md p-1 font-medium text-${item.color} duration-300 hover:bg-white-dark/10 ltr:hover:pl-3 rtl:hover:pr-3 dark:hover:bg-[#181F32] ${
-                                            filterTags === '${item.title}' && 'bg-gray-100 ltr:pl-3 rtl:pr-3 dark:bg-[#181F32]'
-                                        }`}
-                                        onClick={() => tabChanged(`${item.id}`)}
-                                    >
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 rotate-45 fill-${item.color}`}>
-                                            <path
-                                                d="M2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C22 4.92893 22 7.28595 22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12Z"
-                                                stroke="currentColor"
-                                                strokeWidth="1.5"
-                                            ></path>
-                                        </svg>
-                                        <div className="ltr:ml-3 rtl:mr-3">{item.title}</div>
-                                    </button>
-                                );
-                            })}
-                        </PerfectScrollbar>
-                    </div>
-                    <div className="absolute bottom-0 w-full p-4 ltr:left-0 rtl:right-0">
-                        <button className="btn btn-success max-sm:btn-sm w-full mb-5" type="button" onClick={fakeInsert}>
-                            <svg className="h-5 w-5 ltr:mr-2 rtl:ml-2" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            Fake Data Insert
-                        </button>
-                        <button className="btn btn-danger max-sm:btn-sm w-full mb-5" type="button" onClick={truncateTags}>
-                            <BsTrash className="ltr:mr-2 rtl:ml-2" /> Truncate Tags
-                        </button>
-                        <button className="btn btn-danger max-sm:btn-sm w-full mb-5" type="button" onClick={truncateNotes}>
-                            <BsTrash className="ltr:mr-2 rtl:ml-2" /> Truncate Notes
-                        </button>
-                        <button className="btn btn-primary max-sm:btn-sm w-full" type="button" onClick={() => editNote()}>
-                            <svg className="h-5 w-5 ltr:mr-2 rtl:ml-2" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            Add New Note
-                        </button>
-                    </div>
+                            <button className="btn btn-danger max-sm:btn-sm w-full mb-5" type="button" onClick={truncateNotes}>
+                                <BsTrash className="ltr:mr-2 rtl:ml-2" /> Truncate Notes
+                            </button>
+                            <button className="btn btn-primary max-sm:btn-sm w-full" type="button" onClick={() => editNote()}>
+                                <svg className="h-5 w-5 ltr:mr-2 rtl:ml-2" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Add New Note
+                            </button>
+                        </div>
+                    )}
                 </div>
                 <div className="panel h-full flex-1 overflow-auto">
                     <div className="pb-5">

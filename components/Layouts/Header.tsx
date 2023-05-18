@@ -9,7 +9,7 @@ import { toggleSidebar } from '../../store/themeConfigSlice';
 import Dropdown from '../Dropdown';
 import { useSession, signIn, signOut } from "next-auth/react";
 import { Dialog, Transition } from '@headlessui/react';
-import { FaUserAltSlash } from 'react-icons/fa';
+import { FaUserAltSlash, FaRegSmileBeam } from 'react-icons/fa';
 import { Tab } from '@headlessui/react';
 import Swal from 'sweetalert2';
 import axios from 'axios';
@@ -126,11 +126,17 @@ const Header = () => {
     const [loginModal, setLoginModal] = useState(false);
     const [loginEmail, setLoginEmail] = useState('');
     const [loginPassword, setLoginPassword] = useState('');
+    const [autoLogin, setAutoLogin] = useState(false);
     const [joinParams, setJoinParams] = useState({ email: '', name: '', nick: '', password: '' });
+    let signinTabBtn = useRef(null);
 
     const changeLoginFormItem = (event: any) => {
         const value = event.currentTarget.value;
-        if (event.currentTarget.getAttribute('id') === 'login_email') setLoginEmail(value); else setLoginPassword(value);
+        if (event.currentTarget.getAttribute('id') === 'login_email') setLoginEmail(value); 
+        else if (event.currentTarget.getAttribute('id') === 'login_password') setLoginPassword(value);
+        else if (event.currentTarget.getAttribute('id') === 'auto_login') {
+            if (event.currentTarget.checked) setAutoLogin(true); else setAutoLogin(false);
+        }
         //console.log(value);
     };
     const showMessage = (msg = '', type = 'success') => {
@@ -150,18 +156,23 @@ const Header = () => {
     };
     const userLogin = async (event: any) => {
         event.preventDefault();
-        
-        const axiosData = { module: 'userLogin', email: loginEmail, password: loginPassword };
-        const result = await axios.post('/api/user', axiosData);
-        console.log(result.data);
-        //affectedRows: 1, fieldCount: 0, info: "", insertId: 1, serverStatus: 2, warningStatus: 0
 
-        if (result.data.result) {
+        const result = await signIn("credentials", {
+            redirect: false,
+            email: loginEmail,
+            password: loginPassword,
+        });
+
+        if (result?.error) {
+            showMessage(result.error, 'error');
+        } else {
             setLoginEmail('');
             setLoginPassword('');
             setLoginModal(false);
-        } else {
-            showMessage(result.data.msg, 'error');
+
+            if (autoLogin) {
+
+            }
         }
     };
     const userJoin = async (event: any) => {
@@ -172,9 +183,11 @@ const Header = () => {
         console.log(result.data);
         //affectedRows: 1, fieldCount: 0, info: "", insertId: 1, serverStatus: 2, warningStatus: 0
 
-        if (result.data.affectedRows) {
+        if (result.data.result) {
             setJoinParams({ email: '', name: '', nick: '', password: '' });
-            setLoginModal(false);
+            showMessage('축하합니다. 정상적으로 가입하셨습니다. 로그인 해 주십시오.', 'success');
+            document.getElementsByClassName('signinTabBtn')[0].click();
+            //signinTabBtn.click();
         } else {
             showMessage(result.data.msg, 'error');
         }
@@ -184,6 +197,8 @@ const Header = () => {
         setJoinParams({ ...joinParams, [id]: value });
         //console.log({ ...joinParams, [id]: value });
     };
+
+    //console.log(session);
 
     return (
         <header className={themeConfig.semidark && themeConfig.menu === 'horizontal' ? 'dark' : ''}>
@@ -591,19 +606,17 @@ const Header = () => {
                                     offset={[0, 8]}
                                     placement={`${isRtl ? 'bottom-start' : 'bottom-end'}`}
                                     btnClassName="relative group block"
-                                    button={<img className="h-9 w-9 rounded-full object-cover saturate-50 group-hover:saturate-100" src="/assets/images/user-profile.jpeg" alt="userProfile" />}
+                                    button={<img className="h-9 w-9 rounded-full object-cover saturate-50 group-hover:saturate-100" src={session.user.image ? session.user.image : '/assets/images/user-profile.jpeg'} alt="userProfile" />}
                                 >
                                     <ul className="w-[230px] !py-0 font-semibold text-dark dark:text-white-dark dark:text-white-light/90">
                                         <li>
                                             <div className="flex items-center px-4 py-4">
-                                                <img className="h-10 w-10 rounded-md object-cover" src="/assets/images/user-profile.jpeg" alt="userProfile" />
-                                                <div className="ltr:pl-4 rtl:pr-4">
+                                                <div>
                                                     <h4 className="text-base">
-                                                        John Doe
-                                                        <span className="rounded bg-success-light px-1 text-xs text-success ltr:ml-2 rtl:ml-2">Pro</span>
+                                                        {session.user.nick}
                                                     </h4>
                                                     <button type="button" className="text-black/60 hover:text-primary dark:text-dark-light/60 dark:hover:text-white">
-                                                        johndoe@gmail.com
+                                                        {session.user.email}
                                                     </button>
                                                 </div>
                                             </div>
@@ -666,7 +679,8 @@ const Header = () => {
                                             </Link>
                                         </li>
                                         <li className="border-t border-white-light dark:border-white-light/10">
-                                            <Link href="/auth/boxed-signin" className="!py-3 text-danger">
+                                            <button onClick={() => signOut()} className="!py-3 text-danger">
+                                            {/*<Link href="/auth/boxed-signin" className="!py-3 text-danger">*/}
                                                 <svg className="rotate-90 ltr:mr-2 rtl:ml-2" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path
                                                         opacity="0.5"
@@ -678,7 +692,8 @@ const Header = () => {
                                                     <path d="M12 15L12 2M12 2L15 5.5M12 2L9 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                                 </svg>
                                                 Sign Out
-                                            </Link>
+                                            {/*</Link>*/}
+                                            </button>
                                         </li>
                                     </ul>
                                 </Dropdown>
@@ -744,9 +759,9 @@ const Header = () => {
                                                                     <Tab.List className="flex flex-wrap">
                                                                         <Tab as={Fragment}>
                                                                             {({ selected }) => (
-                                                                                <button
+                                                                                <button 
                                                                                     className={`${selected ? 'bg-primary text-white !outline-none' : ''}
-                                                                                    -mb-[1px] block rounded p-3.5 py-2 hover:bg-primary hover:text-white ltr:mr-2 rtl:ml-2`}>
+                                                                                    -mb-[1px] block rounded p-3.5 py-2 hover:bg-primary hover:text-white ltr:mr-2 rtl:ml-2 signinTabBtn`}>
                                                                                     SIGN IN
                                                                                 </button>
                                                                             )}
@@ -793,6 +808,12 @@ const Header = () => {
                                                                                         </span>
                                                                                         <input type="password" value={loginPassword} onChange={changeLoginFormItem} minLength={8} maxLength={20} placeholder="Password" className="form-input ltr:pl-10 rtl:pr-10" id="login_password" required />
                                                                                     </div>
+                                                                                    <div className="relative mb-4">
+                                                                                        <label className="flex items-center cursor-pointer">
+                                                                                            <input type="checkbox" className="form-checkbox" onChange={changeLoginFormItem} id="auto_login" />
+                                                                                            <span className=" text-white-dark">Auto Login</span>
+                                                                                        </label>
+                                                                                    </div>
                                                                                     <button type="submit" className="btn btn-primary w-full">
                                                                                         Login
                                                                                     </button>
@@ -812,7 +833,7 @@ const Header = () => {
                                                                         </Tab.Panel>
                                                                         <Tab.Panel>
                                                                             <div className="p-5">
-                                                                                <form onSubmit={() => {}} autoComplete="off">
+                                                                                <form onSubmit={userJoin} autoComplete="off">
                                                                                     <div className="relative mb-4">
                                                                                         <span className="absolute ltr:left-3 rtl:right-3 top-1/2 -translate-y-1/2 dark:text-white-dark">
                                                                                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5">
@@ -862,9 +883,7 @@ const Header = () => {
                                                                                     </div>
                                                                                     <div className="relative mb-4">
                                                                                         <span className="absolute ltr:left-3 rtl:right-3 top-1/2 -translate-y-1/2 dark:text-white-dark">
-                                                                                            <svg fill="none" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
-                                                                                                <g stroke="#1c274c" stroke-width="1.5"><circle cx="10" cy="6" r="4"/><g stroke-linecap="round"><path d="m19 2s2 1.2 2 4-2 4-2 4"/><path d="m17 4s1 .6 1 2-1 2-1 2"/><path d="m13 20.6151c-.9093.2468-1.9264.3849-3 .3849-3.86599 0-7-1.7909-7-4s3.13401-4 7-4c3.866 0 7 1.7909 7 4 0 .3453-.0766.6804-.2205 1"/></g></g>
-                                                                                            </svg>
+                                                                                            <FaRegSmileBeam style={{width: '20px', height: '20px' }} />
                                                                                         </span>
                                                                                         <input type="text" placeholder="Nick" value={joinParams.nick} onChange={changeJoinFormValue} minLength={2} maxLength={255} className="form-input ltr:pl-10 rtl:pr-10" id="nick" required />
                                                                                     </div>
