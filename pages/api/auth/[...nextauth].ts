@@ -10,6 +10,7 @@ const { v4: uuidv4 } = require('uuid');
 
 export default NextAuth({
     secret: process.env.NEXTAUTH_SECRET,
+    session: { maxAge: 3600 * 24 * 7 },
     providers: [
         CredentialsProvider({
             name: "Credentials",

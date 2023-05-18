@@ -9,7 +9,9 @@ import { toggleSidebar } from '../../store/themeConfigSlice';
 import Dropdown from '../Dropdown';
 import { useSession, signIn, signOut } from "next-auth/react";
 import { Dialog, Transition } from '@headlessui/react';
-import { FaUserAltSlash, FaRegSmileBeam } from 'react-icons/fa';
+import { FaUserAltSlash, FaRegSmileBeam, FaGoogle } from 'react-icons/fa';
+import { RiKakaoTalkFill } from "react-icons/ri";
+import { SiNaver } from "react-icons/si";
 import { Tab } from '@headlessui/react';
 import Swal from 'sweetalert2';
 import axios from 'axios';
@@ -171,7 +173,7 @@ const Header = () => {
             setLoginModal(false);
 
             if (autoLogin) {
-
+                
             }
         }
     };
@@ -820,13 +822,16 @@ const Header = () => {
                                                                                 </form>
                                                                             </div>
                                                                             <div className="flex items-center justify-center gap-3">
-                                                                                <button type="button" onClick={() => signIn('google')} className="btn btn-outline-primary flex gap-1">
+                                                                                <button type="button" onClick={() => signIn('google')} className="btn btn-outline-primary max-sm:btn-sm flex gap-1">
+                                                                                    <FaGoogle />
                                                                                     <span>Google</span>
                                                                                 </button>
-                                                                                <button type="button" onClick={() => signIn('naver')} className="btn btn-outline-success flex gap-1">
+                                                                                <button type="button" onClick={() => signIn('naver')} className="btn btn-outline-success max-sm:btn-sm flex gap-1">
+                                                                                    <SiNaver />
                                                                                     <span>Naver</span>
                                                                                 </button>
-                                                                                <button type="button" onClick={() => signIn('kakao')} className="btn btn-outline-warning flex gap-1">
+                                                                                <button type="button" onClick={() => signIn('kakao')} className="btn btn-outline-warning max-sm:btn-sm flex gap-1">
+                                                                                    <RiKakaoTalkFill />
                                                                                     <span>Kakao</span>
                                                                                 </button>
                                                                             </div>
