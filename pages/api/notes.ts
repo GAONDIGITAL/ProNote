@@ -1,5 +1,6 @@
 import moment from 'moment';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import fs from 'fs';
 
 const { v4: uuidv4 } = require('uuid');
 const db = require('../../config/db.ts');
@@ -50,9 +51,10 @@ export default function notes(req : NextApiRequest, res : NextApiResponse) {
                     if (page < 1) page = 1;
                     const from_record = (page - 1) * rows;
 
-                    sql = `select id, tags, title, description, created from notes 
-                                where user = ${db.escape(req.body.user)} 
-                                order by idx desc
+                    sql = `select A.id, A.tags, A.title, A.description, A.created, (select count(*) from files where user = ${db.escape(req.body.user)} and parent_id = A.id) as uploadCount 
+                            from notes A 
+                                where A.user = ${db.escape(req.body.user)} 
+                                order by A.idx desc
                                 limit ${from_record}, ${rows};
                             select id, title, color from tags 
                                 where category = 'note' and user = ${db.escape(req.body.user)} 
@@ -1108,6 +1110,14 @@ export default function notes(req : NextApiRequest, res : NextApiResponse) {
         sql = `insert into notes (id, tags, title, description, user, created) values ${sqlArray.join(',')};`;
     } else if (db.escape(req.body.module) === "'noteUpdateUser'") {
         sql = `update notes set user = ${db.escape(req.body.user)}`;
+    } else if (db.escape(req.body.module) === "'filesLoad'") {
+        sql = `select id, source_name as sourceName, name, extension, size, download_count as downloadCount, created from files where user = ${db.escape(req.body.user)} and parent_id = ${db.escape(req.body.id)}`;
+    } else if (db.escape(req.body.module) === "'deleteFile'") {
+        const filePath = `public/upload/${req.body.user}/${req.body.name}`;
+
+        fs.unlinkSync(filePath);
+
+        sql = `delete from files where id = ${db.escape(req.body.id)}`;
     } 
     //console.log(sql);
 

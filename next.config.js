@@ -5,14 +5,14 @@ const nextConfig = {
     eslint: {
         ignoreDuringBuilds: true,
     },
-    async headers() {
-        return [
-            {
-                key: 'X-XSS-Protection',
-                value: '1; mode=block'
-            }
-        ]
-    },
+    // async headers() {
+    //     return [
+    //         {
+    //             key: 'X-XSS-Protection',
+    //             value: '1; mode=block'
+    //         }
+    //     ]
+    // },
 };
 
 module.exports = nextConfig;

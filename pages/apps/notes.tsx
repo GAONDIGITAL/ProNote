@@ -1,12 +1,13 @@
 import PerfectScrollbar from 'react-perfect-scrollbar';
 import { Dialog, Transition } from '@headlessui/react';
-import { Fragment, useState, useEffect, useRef } from 'react';
+import { Fragment, useState, useEffect, useRef, useCallback } from 'react';
 import Swal from 'sweetalert2';
 import { useDispatch, useSelector } from 'react-redux';
 import { IRootState } from '../../store';
 import { setPageTitle } from '../../store/themeConfigSlice';
 import axios from 'axios';
-import { BsGear, BsPlus, BsArrowDownUp, BsCheckLg, BsTrash, BsCheck2All, BsPencilSquare, BsX, BsPencil } from 'react-icons/bs';
+import { BsGear, BsPlus, BsArrowDownUp, BsCheckLg, BsTrash, BsCheck2All, BsPencilSquare, BsX, BsPencil, BsCloudUpload, BsFileEarmarkTextFill, BsFillClockFill } from 'react-icons/bs';
+import { FaDownload } from "react-icons/fa";
 import { FiLoader } from 'react-icons/fi';
 import { ReactSortable } from 'react-sortablejs';
 import React from 'react';
@@ -18,6 +19,8 @@ import Select from 'react-select';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { useSession } from 'next-auth/react';
+import {useDropzone} from 'react-dropzone';
+import imageCompression from 'browser-image-compression';
 const ReactQuill = dynamic(import('react-quill'), { ssr: false });
 
 const Notes = () => {
@@ -36,7 +39,18 @@ const Notes = () => {
         tags: { id: string, color: string, title: string }[],
         title: string,
         description: string,
-        created: string
+        created: string,
+        uploadCount: number,
+    }
+
+    interface UploadFile {
+        id: string,
+        sourceName: string,
+        name: string,
+        extension: string,
+        size: number,
+        downloadCount: number,
+        created: string,
     }
     
     const [tagsListOption, setTagsListOption] = useState<Tag[]>([]);
@@ -135,7 +149,7 @@ const Notes = () => {
         'align',
     ];
 
-    const editNote = (note: any = null) => {
+    const editNote = async (note: any = null) => {
         setIsShowNoteMenu(false);
 
         let option: any = [];
@@ -158,6 +172,7 @@ const Notes = () => {
             setParams(imsiNote);
         } else {
             setParams(defaultParams);
+            setUploadFiles([]);
         }
 
         setNoteModal(true);
@@ -242,6 +257,15 @@ const Notes = () => {
         });
     };
 
+    const defaultParams: Note = {
+        id: '',
+        tags: [],
+        title: '',
+        description: '',
+        created: '',
+        uploadCount: 0,
+    };
+
     const [page, setPage] = useState(1);
     const [startPage, setStartPage] = useState(0);
     const [totalCount, setTotalCount] = useState(0);
@@ -249,6 +273,87 @@ const Notes = () => {
     const [pageBlock, setPageBlock] = useState<number[]>([]);
     const [totalPage, setTotalPage] = useState(0);
     const [notesList, setNotesList] = useState<Note[]>([]);
+    const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
+    const [params, setParams] = useState<Note>(defaultParams);
+    const images = ['jpg', 'jpeg', 'png', 'gif'];
+
+    const onDrop = useCallback(async (acceptedFiles: any) => {
+        //console.log(acceptedFiles);
+        /*path: "new_SAM_2116.JPG"
+        lastModified: 1517660028493
+        lastModifiedDate: Sat Feb 03 2018 21:13:48 GMT+0900 (한국 표준시) {}
+        name: "new_SAM_2116.JPG"
+        size: 938879
+        type: "image/jpeg"
+        webkitRelativePath: ""*/
+
+        const formData = new FormData();
+
+        acceptedFiles.map(async (item: any) => {
+            // const fileName = item.name.split('.');
+            // const fileExtension = fileName[fileName.length - 1];
+
+            // if (images.includes(fileExtension.toLowerCase())) {
+            //     const compressedBlob = await imageCompression(item, { maxWidthOrHeight: 1200, useWebWorker: true });
+            //     const resizingFile = new File([compressedBlob], item.name, { type: item.type });
+            //     //console.log(item, resizingFile);
+            //     formData.append('files', resizingFile);
+            // } else {
+            //     //console.log(item);
+            //     formData.append('files', item);
+            // }
+            formData.append('files', item);
+        });
+        
+        formData.append('parentId', params.id);
+        formData.append('user', session?.user.id as string);
+
+        const result = await axios.post('/api/fileUpload', formData, { headers: { "Content-Type": "multipart/form-data" }});
+        //console.log(result);
+
+        setUploadFiles(result.data);
+    }, [params]);
+
+    // const dropZoneReset = () => {
+    //     if (imgRef.current) {
+    //         imgRef.current.value = "";
+    //         URL.revokeObjectURL(imgUrl);
+    //         setImgUrl((_pre) => "");
+    //     }
+    // };
+    
+    const {getRootProps, getInputProps, acceptedFiles} = useDropzone({ onDrop, maxFiles: 10, noClick: true, maxSize: 5000000 });
+
+    const deleteFile = async (id: string, name: string) => {
+        Swal.fire({
+            title: '정말 삭제 하시겠습니까?',
+            text: '삭제된 데이터는 복구가 불가능합니다.',
+            icon: 'error',//sucess, error, warning, info, question
+            showCancelButton: true,
+            confirmButtonColor: '#e7515a',
+            confirmButtonText: '삭제',
+            cancelButtonText: '취소',
+        }).then(async result => {
+            if (result.isConfirmed) {
+                const axiosData = { module: 'deleteFile', id: id, name: name, user: session?.user.id };
+                const result = await axios.post('/api/notes', axiosData);
+                //console.log(result.data);
+
+                if (result.data.affectedRows) {
+                    const imsi = uploadFiles.filter(item => item.id !== id);
+                    setUploadFiles(imsi);
+
+                    showMessage('정상적으로 삭제하였습니다.');
+                } else {
+                    showMessage('데이터를 삭제하지 못했습니다.', 'error');
+                }
+            }
+        });
+    };
+    
+    const downFile = async (id: string, name: string) => {
+
+    };
 
     useEffect(() => {
         if (session) notesLoad();
@@ -300,21 +405,19 @@ const Notes = () => {
         setEndPage(endPage);
     };
 
-    const showNote = (note: Note) => {
+    const showNote = async (note: Note) => {
         //console.log(note);
+        if (note.uploadCount) {
+            const axiosData = { module: 'filesLoad', user: session?.user.id, id: note.id };
+            const result = await axios.post('/api/notes', axiosData);
+            //console.log(result.data);
+            setUploadFiles(result.data);
+        }
+
         setParams(note);
         setIsViewNoteModal(true);
     };
-
-    const defaultParams: Note = {
-        id: '',
-        tags: [],
-        title: '',
-        description: '',
-        created: ''
-    };
-    //const [params, setParams] = useState<any>(JSON.parse(JSON.stringify(defaultParams)));
-    const [params, setParams] = useState<Note>(defaultParams);
+    
     const [noteModal, setNoteModal] = useState(false);
     const [isShowNoteMenu, setIsShowNoteMenu] = useState(false);
     const [isViewNoteModal, setIsViewNoteModal] = useState(false);
@@ -754,7 +857,7 @@ const Notes = () => {
                                 return (
                                     <div className={`panel bg-${note.tags.length && note.tags[0].color}-light shadow-${note.tags.length && note.tags[0].color}`} key={note.id}>
                                         <button className="" onClick={() => showNote(note)}>
-                                            <h4 className="font-semibold text-start line-clamp-1">{note.title}</h4>
+                                            <h4 className="font-semibold text-start line-clamp-1">{note.uploadCount > 0 && (<BsFileEarmarkTextFill className='mr-1' style={{ display: 'inline' }} />)}{note.title}</h4>
                                             <div className="mt-3 text-white-dark text-justify line-clamp-6 break-all" style={{minHeight: '120px'}}>{note.description.replace(/<[^>]*>?/g, '')}</div>
                                         </button>
                                         <div className="mt-3">
@@ -772,24 +875,7 @@ const Notes = () => {
                             <div className="panel bg-gray-300 animate-pulse">
                                 <h1 className="h-5 mt-1 bg-gray-200 rounded-lg dark:bg-gray-700"></h1>
                                 <p className="mt-5 bg-gray-200 rounded-lg dark:bg-gray-700" style={{minHeight: '120px'}}></p>
-                            </div>*/
-                            
-                            /*//Dropzone style upload image
-                            <>
-                                <div className="custom-file-container__image-preview relative">
-                                    <button type="button" className="custom-file-container__image-clear absolute top-0 left-0 block w-fit rounded-full bg-dark-light p-0.5 dark:bg-dark dark:text-white-dark" title="Clear Image">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                                    </button>
-                                    <img src="/assets/images/carousel3.jpeg" />
-                                </div>
-                                <div className="custom-file-container__image-preview relative item-center">
-                                    <button type="button" className="custom-file-container__image-clear absolute top-0 left-0 block w-fit rounded-full bg-dark-light p-0.5 dark:bg-dark dark:text-white-dark" title="Clear Image">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                                    </button>
-                                    <input type="text" value="8sdufsghdi.pdf" className="form-input bg-gray-100" disabled />
-                                </div>
-                            </>*/
-                            }
+                            </div>*/}
                         </div>
                     ) : (
                         <div className="flex h-full min-h-[400px] items-center justify-center text-lg font-semibold sm:min-h-[300px]">No data available</div>
@@ -927,6 +1013,43 @@ const Notes = () => {
                                                             <div className="mb-3">
                                                                 <Select id="tags" options={tagsListOption} defaultValue={params.tags} onChange={(event: any) => setParams({ ...params, tags: event })} placeholder="Select Tags" isMulti styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }} menuPortalTarget={document.body} />
                                                             </div>
+                                                            <div className="mb-3">
+                                                                <div {...getRootProps({ className: 'max-w-xl' })}>
+                                                                    <label className="flex justify-center w-full h-16 px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md appearance-none cursor-pointer hover:border-gray-400 focus:outline-none">
+                                                                        <span className="flex items-center space-x-2">
+                                                                            <span className="font-medium text-gray-600"><BsCloudUpload style={{display: 'inline'}} /> MAX SIZE : 5MB</span>
+                                                                        </span>
+                                                                        <input {...getInputProps()} />
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                            {uploadFiles.length > 0 && (
+                                                            <div className="mb-3">
+                                                                <div className="grid gap-4 sm:grid-cols-3 grid-cols-1">
+                                                                    {uploadFiles.map((item: any) => {
+                                                                        if (images.includes(item.extension.toLowerCase())) {
+                                                                            return (
+                                                                                <div key={item.id} className="custom-file-container__image-preview relative">
+                                                                                    <button type="button" onClick={() => deleteFile(item.id, item.name)} className="custom-file-container__image-clear absolute top-0 left-0 block w-fit rounded-full bg-dark-light p-0.5 dark:bg-dark dark:text-white-dark">
+                                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                                                    </button>
+                                                                                    <img src={`/upload/${session?.user.id}/${item.name}`} />
+                                                                                </div>
+                                                                            );
+                                                                        } else {
+                                                                            return (
+                                                                                <div key={item.id} className="custom-file-container__image-preview relative item-center">
+                                                                                    <button type="button" onClick={() => deleteFile(item.id, item.name)} className="custom-file-container__image-clear absolute top-0 left-0 block w-fit rounded-full bg-dark-light p-0.5 dark:bg-dark dark:text-white-dark">
+                                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                                                    </button>
+                                                                                    <input type="text" value={item.sourceName} title={item.sourceName} className="form-input bg-gray-100" disabled />
+                                                                                </div>
+                                                                            );
+                                                                        }
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                            )}
                                                             {params.id ? <div className="mb-3"><span className="badge badge-outline-info rounded-full ml-3"><BsPencilSquare style={{display: 'inline-block'}} /> {params.created.substring(0, 16).replace('T', ' ')}</span></div> : ''}
                                                             <div className="mt-8 flex items-center justify-end">
                                                                 <button type="button" className="btn btn-outline-danger max-sm:btn-sm gap-2" onClick={() => setNoteModal(false)}>
@@ -1002,6 +1125,25 @@ const Notes = () => {
                                                 <span className="badge badge-outline-info rounded-full"><BsPencilSquare style={{display: 'inline-block'}} /> {params.created.substring(0, 16).replace('T', ' ')}</span>
                                             </div>
                                             <div className="p-5">
+                                                {uploadFiles.length > 0 && (
+                                                <div className="mb-3">
+                                                    {uploadFiles.map((item: any) => {
+                                                        if (!images.includes(item.extension.toLowerCase())) {
+                                                            return (
+                                                                <div key={item.id} className='container'>
+                                                                    <button type="button" onClick={() => downFile(item.id, item.name)} className='text-sm'>
+                                                                        {item.sourceName}
+                                                                        <span className="badge bg-primary rounded-full ml-1">{bytesToSize(item.size)}</span>
+                                                                        <span className="badge bg-success rounded-full ml-1"><FaDownload style={{display: 'inline'}} /> {item.downloadCount}</span>
+                                                                        <span className="badge bg-dark rounded-full ml-1"><BsFillClockFill style={{display: 'inline'}} /> {item.created.replace('T', ' ').substring(0, 16)}</span>
+                                                                    </button>
+                                                                </div>
+                                                            );
+                                                        }
+                                                    })}
+                                                </div>
+                                                )}
+                                                
                                                 <div className="ql-container" dangerouslySetInnerHTML={{__html: params.description }}></div>
 
                                                 <div className="mt-5 flex justify-between">
