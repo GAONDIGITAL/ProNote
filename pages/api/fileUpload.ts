@@ -22,7 +22,7 @@ export const upload = async (req: NextApiRequest, res: NextApiResponse) => {
     const fileData = await new Promise((resolve, reject) => {
         const form = new formidable.IncomingForm({
             uploadDir: uploadDir,
-            maxFileSize: 5 * 1024 * 1024,
+            //maxFileSize: 5 * 1024 * 1024,
             keepExtensions: true,
             multiples: true,
         });

@@ -21,6 +21,9 @@ import 'tippy.js/dist/tippy.css';
 import { useSession } from 'next-auth/react';
 import {useDropzone} from 'react-dropzone';
 import imageCompression from 'browser-image-compression';
+import Link from 'next/link';
+import Lightbox from 'react-18-image-lightbox';
+import 'react-18-image-lightbox/style.css';
 const ReactQuill = dynamic(import('react-quill'), { ssr: false });
 
 const Notes = () => {
@@ -51,6 +54,12 @@ const Notes = () => {
         size: number,
         downloadCount: number,
         created: string,
+    }
+
+    interface UploadImageFiles {
+        id: string,
+        src: string,
+        title: string,
     }
     
     const [tagsListOption, setTagsListOption] = useState<Tag[]>([]);
@@ -198,15 +207,6 @@ const Notes = () => {
 
         setNoteUpdating(true);
 
-        // const size = getByte(params.description);
-        // console.log(size);
-
-        // if (size > 250000) {
-        //     setNoteUpdating(false);
-        //     showMessage(`현제 내용이 ${bytesToSize(size)} 입니다. 2MB 이하로 작성해 주십시오.`, 'error');
-        //     return;
-        // }
-
         let newTags = '';
 
         params.tags.map((item: any) => {
@@ -220,9 +220,27 @@ const Notes = () => {
         //console.log(result.data);
 
         if (result.data.affectedRows) {
+            const noteIdx = result.data.insertId;
+
             showMessage('정상적으로 저장하였습니다.');
             setParams(defaultParams);
-            if (params.id === '') setPage(1); else notesLoad();
+
+            if (params.id === '') {
+                if (uploadFiles.length > 0) {
+                    let imsi:any = [];
+
+                    uploadFiles.map(async (item: any) => {
+                        imsi.push(item.id);
+                    });
+
+                    const axiosData = { module: 'noteUpdateAfterfilesUpdate', filesId: imsi, noteIdx: noteIdx };
+                    const result = await axios.post('/api/notes', axiosData);
+                }
+
+                if (page === 1) notesLoad(); else setPage(1);
+            } else {
+                notesLoad();
+            }
         } else {
             showMessage('데이터를 저장하지 못했습니다.', 'error');
             setNoteUpdating(false);
@@ -248,8 +266,15 @@ const Notes = () => {
 
                 if (result.data.affectedRows) {
                     showMessage('정상적으로 삭제하였습니다.');
+
+                    if (uploadFiles.length > 0) {
+                        const axiosData = { module: 'noteDeleteAfterfilesDelete', id: id, user: session?.user.id };
+                        await axios.post('/api/notes', axiosData);
+                    }
+
+                    setIsViewNoteModal(false);
                     setParams(defaultParams);
-                    setPage(1);
+                    if (page === 1) notesLoad(); else setPage(1);
                 } else {
                     showMessage('데이터를 삭제하지 못했습니다.', 'error');
                 }
@@ -274,6 +299,9 @@ const Notes = () => {
     const [totalPage, setTotalPage] = useState(0);
     const [notesList, setNotesList] = useState<Note[]>([]);
     const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
+    const [uploadImageFiles, setUploadImageFiles] = useState<UploadImageFiles[]>([]);
+    const [photoIndex, setPhotoIndex] = useState(0);
+    const [lightBoxOpen, setLightBoxOpen] = useState(false);
     const [params, setParams] = useState<Note>(defaultParams);
     const images = ['jpg', 'jpeg', 'png', 'gif'];
 
@@ -287,6 +315,7 @@ const Notes = () => {
         type: "image/jpeg"
         webkitRelativePath: ""*/
 
+        let filesCount = 0;
         const formData = new FormData();
 
         acceptedFiles.map(async (item: any) => {
@@ -303,24 +332,26 @@ const Notes = () => {
             //     formData.append('files', item);
             // }
             formData.append('files', item);
+            filesCount++;
         });
         
-        formData.append('parentId', params.id);
-        formData.append('user', session?.user.id as string);
+        if (filesCount > 0) {
+            formData.append('parentId', params.id);
+            formData.append('user', session?.user.id as string);
 
-        const result = await axios.post('/api/fileUpload', formData, { headers: { "Content-Type": "multipart/form-data" }});
-        //console.log(result);
+            const result = await axios.post('/api/fileUpload', formData, { headers: { "Content-Type": "multipart/form-data" }});
+            //console.log(result);
 
-        setUploadFiles(result.data);
+            setUploadFiles(result.data);
+
+            if (params.id) {
+                let imsi = [...notesList];
+                let index = imsi.findIndex(note => note.id === params.id);
+                imsi[index].uploadCount = imsi[index].uploadCount + acceptedFiles.length;
+                setNotesList(imsi);
+            }
+        }
     }, [params]);
-
-    // const dropZoneReset = () => {
-    //     if (imgRef.current) {
-    //         imgRef.current.value = "";
-    //         URL.revokeObjectURL(imgUrl);
-    //         setImgUrl((_pre) => "");
-    //     }
-    // };
     
     const {getRootProps, getInputProps, acceptedFiles} = useDropzone({ onDrop, maxFiles: 10, noClick: true, maxSize: 5000000 });
 
@@ -343,6 +374,11 @@ const Notes = () => {
                     const imsi = uploadFiles.filter(item => item.id !== id);
                     setUploadFiles(imsi);
 
+                    let imsi2 = [...notesList];
+                    let index = imsi2.findIndex(note => note.id === params.id);
+                    imsi2[index].uploadCount = imsi2[index].uploadCount - 1;
+                    setNotesList(imsi2);
+
                     showMessage('정상적으로 삭제하였습니다.');
                 } else {
                     showMessage('데이터를 삭제하지 못했습니다.', 'error');
@@ -351,8 +387,30 @@ const Notes = () => {
         });
     };
     
-    const downFile = async (id: string, name: string) => {
+    const downFile = async (id: string, name: string, sourceName: string, downloadCount: number) => {
+        const axiosData = { module: 'downFile', id: id };
+        const result = await axios.post('/api/notes', axiosData);
+        //console.log(result.data);
 
+        if (result.data.affectedRows) {
+            const file = await axios.get(`/upload/${session?.user.id}/${name}`, { responseType: 'blob' });
+            //console.log(file);
+            const blob = new Blob([file.data]);
+            const fileObjectUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = fileObjectUrl;
+            link.style.display = "none";
+            link.download = sourceName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(fileObjectUrl);
+            
+            let imsi = [...uploadFiles];
+            let index = imsi.findIndex(file => file.id === id);
+            imsi[index].downloadCount = downloadCount + 1;
+            setUploadFiles(imsi);
+        }
     };
 
     useEffect(() => {
@@ -411,7 +469,20 @@ const Notes = () => {
             const axiosData = { module: 'filesLoad', user: session?.user.id, id: note.id };
             const result = await axios.post('/api/notes', axiosData);
             //console.log(result.data);
+
+            let imsi:UploadImageFiles[] = [];
+
+            result.data.map((item: any) => {
+                if (images.includes(item.extension.toLowerCase())) {
+                    imsi.push({ id: item.id, src: `/upload/${session?.user.id}/${item.name}`, title: item.sourceName });
+                }
+            });
+
+            setUploadImageFiles(imsi);
             setUploadFiles(result.data);
+        } else {
+            setUploadImageFiles([]);
+            setUploadFiles([]);
         }
 
         setParams(note);
@@ -1126,15 +1197,15 @@ const Notes = () => {
                                             </div>
                                             <div className="p-5">
                                                 {uploadFiles.length > 0 && (
-                                                <div className="mb-3">
+                                                <div className="mb-3 md:mb-6">
                                                     {uploadFiles.map((item: any) => {
                                                         if (!images.includes(item.extension.toLowerCase())) {
                                                             return (
-                                                                <div key={item.id} className='container'>
-                                                                    <button type="button" onClick={() => downFile(item.id, item.name)} className='text-sm'>
+                                                                <div key={item.id} className='flex justify-end mb-1'>
+                                                                    <button type="button" onClick={() => downFile(item.id, item.name, item.sourceName, item.downloadCount)} className='text-sm'>
                                                                         {item.sourceName}
                                                                         <span className="badge bg-primary rounded-full ml-1">{bytesToSize(item.size)}</span>
-                                                                        <span className="badge bg-success rounded-full ml-1"><FaDownload style={{display: 'inline'}} /> {item.downloadCount}</span>
+                                                                        <span id={`${item.id}_down_count_span`} className="badge bg-success rounded-full ml-1"><FaDownload style={{display: 'inline'}} /> {item.downloadCount}</span>
                                                                         <span className="badge bg-dark rounded-full ml-1"><BsFillClockFill style={{display: 'inline'}} /> {item.created.replace('T', ' ').substring(0, 16)}</span>
                                                                     </button>
                                                                 </div>
@@ -1143,7 +1214,30 @@ const Notes = () => {
                                                     })}
                                                 </div>
                                                 )}
-                                                
+                                                {uploadImageFiles.length > 0 && (
+                                                <div className="mb-3 md:mb-6 grid grid-cols-3 gap-3 sm:grid-cols-6 md:grid-cols-9">
+                                                    {uploadImageFiles.map((item, index) => {
+                                                        return (
+                                                            <Link href="#" key={item.id} onClick={() => { setPhotoIndex(index); setLightBoxOpen(true); }}>
+                                                                <img src={item.src} alt="gallery" data-fancybox="gallery" className="h-full w-full rounded-md object-cover" data-caption={item.title} />
+                                                            </Link>
+                                                        );
+                                                    })}
+
+                                                    {lightBoxOpen && (
+                                                        <Lightbox
+                                                            mainSrc={`${uploadImageFiles[photoIndex]?.src}`}
+                                                            nextSrc={`${uploadImageFiles[photoIndex + (1 % uploadImageFiles.length)]?.src}`}
+                                                            prevSrc={uploadImageFiles[(photoIndex + uploadImageFiles.length - 1) % uploadImageFiles.length]?.src}
+                                                            onCloseRequest={() => setLightBoxOpen(false)}
+                                                            onMoveNextRequest={() => setPhotoIndex((photoIndex + 1) % uploadImageFiles.length)}
+                                                            onMovePrevRequest={() => setPhotoIndex((photoIndex + uploadImageFiles.length - 1) % uploadImageFiles.length)}
+                                                            imageTitle={uploadImageFiles[photoIndex]?.title}
+                                                            enableZoom={false}
+                                                        />
+                                                    )}
+                                                </div>
+                                                )}
                                                 <div className="ql-container" dangerouslySetInnerHTML={{__html: params.description }}></div>
 
                                                 <div className="mt-5 flex justify-between">

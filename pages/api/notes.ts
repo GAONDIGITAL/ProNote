@@ -1118,10 +1118,43 @@ export default function notes(req : NextApiRequest, res : NextApiResponse) {
         fs.unlinkSync(filePath);
 
         sql = `delete from files where id = ${db.escape(req.body.id)}`;
-    } 
+    } else if (db.escape(req.body.module) === "'downFile'") {
+        sql = `update files set download_count = download_count + 1 where id = ${db.escape(req.body.id)}`;
+    } else if (db.escape(req.body.module) === "'noteDeleteAfterfilesDelete'") {
+        sql = `select name from files where parent_id = ${db.escape(req.body.id)}`;
+
+        db.query(sql,
+            function (err: any, result: any) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    result.map((file: any) => {
+                        const filePath = `public/upload/${req.body.user}/${file.name}`;
+                        fs.unlinkSync(filePath);
+                    });
+
+                    sql = `delete from files where parent_id = ${db.escape(req.body.id)}`;
+
+                    db.query(sql,
+                        function (err: any, result: any) {
+                            if (err) {
+                                console.log(err);
+                            } else {
+                                //console.log(result);
+            
+                                res.json(result);
+                            }
+                        }
+                    );
+                }
+            }
+        );
+    } else if (db.escape(req.body.module) === "'noteUpdateAfterfilesUpdate'") {
+        sql = `update files set parent_id = (select id from notes where idx = ${db.escape(req.body.noteIdx)}) where id in ('${req.body.filesId.join("', '")}')`;
+    }
     //console.log(sql);
 
-    if (db.escape(req.body.module) !== "'notesLoad'") {
+    if (db.escape(req.body.module) !== "'notesLoad'" && db.escape(req.body.module) !== "'noteDeleteAfterfilesDelete'") {
         db.query(sql,
             function (err: any, result: any) {
                 if (err) {
