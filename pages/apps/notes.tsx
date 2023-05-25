@@ -307,35 +307,29 @@ const Notes = () => {
 
     const onDrop = useCallback(async (acceptedFiles: any) => {
         //console.log(acceptedFiles);
-        /*path: "new_SAM_2116.JPG"
-        lastModified: 1517660028493
-        lastModifiedDate: Sat Feb 03 2018 21:13:48 GMT+0900 (한국 표준시) {}
-        name: "new_SAM_2116.JPG"
-        size: 938879
-        type: "image/jpeg"
-        webkitRelativePath: ""*/
 
-        let filesCount = 0;
         const formData = new FormData();
 
-        acceptedFiles.map(async (item: any) => {
-            // const fileName = item.name.split('.');
-            // const fileExtension = fileName[fileName.length - 1];
+        const files = acceptedFiles.map(async (item: any) => {
+            const fileName = item.name.split('.');
+            const fileExtension = fileName[fileName.length - 1];
 
-            // if (images.includes(fileExtension.toLowerCase())) {
-            //     const compressedBlob = await imageCompression(item, { maxWidthOrHeight: 1200, useWebWorker: true });
-            //     const resizingFile = new File([compressedBlob], item.name, { type: item.type });
-            //     //console.log(item, resizingFile);
-            //     formData.append('files', resizingFile);
-            // } else {
-            //     //console.log(item);
-            //     formData.append('files', item);
-            // }
-            formData.append('files', item);
-            filesCount++;
+            if (images.includes(fileExtension.toLowerCase())) {
+                const compressedBlob = await imageCompression(item, { maxWidthOrHeight: 1200, useWebWorker: true });
+                const resizingFile = new File([compressedBlob], item.name, { type: item.type });
+                //console.log(item, resizingFile, new Date().getTime());
+                formData.append('files', resizingFile);
+                return resizingFile;
+            } else {
+                formData.append('files', item);
+                return item;
+            }
         });
+
+        const awaitFiles = await Promise.all(files);
         
-        if (filesCount > 0) {
+        if (awaitFiles.length > 0) {
+            if (awaitFiles.length === 1) formData.append('files', acceptedFiles[0]);
             formData.append('parentId', params.id);
             formData.append('user', session?.user.id as string);
 

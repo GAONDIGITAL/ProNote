@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import formidable from 'formidable';
-import path from "path";
 import fs from 'fs';
 import moment from 'moment';
 
@@ -43,31 +42,31 @@ export const upload = async (req: NextApiRequest, res: NextApiResponse) => {
             const fullDate   = now.format('YYYY-MM-DD HH:mm:ss');
             let sqlArray: string[] = [];
 
-            files.files.map((file: any) => {
-                //console.log(file);
-                /*_events: [Object: null prototype],
-                _eventsCount: 1,
-                _maxListeners: undefined,
-                lastModifiedDate: 2023-05-23T12:13:45.258Z,
-                filepath: 'C:\\Users\\MCS\\AppData\\Local\\Temp\\1af391f67db9ef4a0b8a6ca09.hwp',
-                newFilename: '1af391f67db9ef4a0b8a6ca09.hwp',
-                originalFilename: '근접전투술진도표.hwp',
-                mimetype: 'application/haansofthwp',
-                hashAlgorithm: false,
-                size: 19456,
-                _writeStream: [WriteStream],
-                hash: null,
-                [Symbol(kCapture)]: false*/
-
-                const tmpPath = `${uploadDir}/${file.newFilename}`;
-                const newPath = `${dir}/${file.newFilename}`;
+            if (files.files.length === 2 && files.files[0].originalFilename === files.files[1].originalFilename) {
+                const tmpPath = `${uploadDir}/${files.files[0].newFilename}`;
+                const newPath = `${dir}/${files.files[0].newFilename}`;
                 fs.renameSync(tmpPath, newPath);
 
-                const fileName = file.newFilename.split('.');
+                const fileName = files.files[0].newFilename.split('.');
                 const fileExtension = fileName[fileName.length - 1];
                 
-                sqlArray.push(`('${uuidv4()}', '${fields.parentId}', '${file.originalFilename}', '${file.newFilename}', '${fileExtension}', '${file.size}', '${fullDate}', '${fields.user}')`);
-            });
+                sqlArray.push(`('${uuidv4()}', '${fields.parentId}', '${files.files[0].originalFilename}', '${files.files[0].newFilename}', '${fileExtension}', '${files.files[0].size}', '${fullDate}', '${fields.user}')`);
+
+                fs.unlinkSync(`${uploadDir}/${files.files[1].newFilename}`);
+            } else {
+                files.files.map((file: any) => {
+                    //console.log(file);
+
+                    const tmpPath = `${uploadDir}/${file.newFilename}`;
+                    const newPath = `${dir}/${file.newFilename}`;
+                    fs.renameSync(tmpPath, newPath);
+
+                    const fileName = file.newFilename.split('.');
+                    const fileExtension = fileName[fileName.length - 1];
+                    
+                    sqlArray.push(`('${uuidv4()}', '${fields.parentId}', '${file.originalFilename}', '${file.newFilename}', '${fileExtension}', '${file.size}', '${fullDate}', '${fields.user}')`);
+                });
+            }
 
             sql = `insert into files (id, parent_id, source_name, name, extension, size, created, user) values ${sqlArray.join(',')};`;
 
