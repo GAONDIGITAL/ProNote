@@ -329,7 +329,6 @@ const Notes = () => {
         const awaitFiles = await Promise.all(files);
         
         if (awaitFiles.length > 0) {
-            if (awaitFiles.length === 1) formData.append('files', acceptedFiles[0]);
             formData.append('parentId', params.id);
             formData.append('user', session?.user.id as string);
 
@@ -349,7 +348,9 @@ const Notes = () => {
     
     const {getRootProps, getInputProps, acceptedFiles} = useDropzone({ onDrop, maxFiles: 10, noClick: true, maxSize: 5000000 });
 
-    const deleteFile = async (id: string, name: string) => {
+    const deleteFile = async (e: any, id: string, name: string) => {
+        console.log(e);
+
         Swal.fire({
             title: '정말 삭제 하시겠습니까?',
             text: '삭제된 데이터는 복구가 불가능합니다.',
@@ -358,6 +359,7 @@ const Notes = () => {
             confirmButtonColor: '#e7515a',
             confirmButtonText: '삭제',
             cancelButtonText: '취소',
+            focusConfirm: true,
         }).then(async result => {
             if (result.isConfirmed) {
                 const axiosData = { module: 'deleteFile', id: id, name: name, user: session?.user.id };
@@ -1095,7 +1097,7 @@ const Notes = () => {
                                                                         if (images.includes(item.extension.toLowerCase())) {
                                                                             return (
                                                                                 <div key={item.id} className="custom-file-container__image-preview relative">
-                                                                                    <button type="button" onClick={() => deleteFile(item.id, item.name)} className="custom-file-container__image-clear absolute top-0 left-0 block w-fit rounded-full bg-dark-light p-0.5 dark:bg-dark dark:text-white-dark">
+                                                                                    <button type="button" onClick={(e) => deleteFile(e, item.id, item.name)} className="custom-file-container__image-clear absolute top-0 left-0 block w-fit rounded-full bg-dark-light p-0.5 dark:bg-dark dark:text-white-dark">
                                                                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                                                                                     </button>
                                                                                     <img src={`/upload/${session?.user.id}/${item.name}`} />
@@ -1104,7 +1106,7 @@ const Notes = () => {
                                                                         } else {
                                                                             return (
                                                                                 <div key={item.id} className="custom-file-container__image-preview relative item-center">
-                                                                                    <button type="button" onClick={() => deleteFile(item.id, item.name)} className="custom-file-container__image-clear absolute top-0 left-0 block w-fit rounded-full bg-dark-light p-0.5 dark:bg-dark dark:text-white-dark">
+                                                                                    <button type="button" onClick={(e) => deleteFile(e, item.id, item.name)} className="custom-file-container__image-clear absolute top-0 left-0 block w-fit rounded-full bg-dark-light p-0.5 dark:bg-dark dark:text-white-dark">
                                                                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                                                                                     </button>
                                                                                     <input type="text" value={item.sourceName} title={item.sourceName} className="form-input bg-gray-100" disabled />

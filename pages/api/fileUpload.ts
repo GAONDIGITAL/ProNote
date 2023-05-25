@@ -42,18 +42,9 @@ export const upload = async (req: NextApiRequest, res: NextApiResponse) => {
             const fullDate   = now.format('YYYY-MM-DD HH:mm:ss');
             let sqlArray: string[] = [];
 
-            if (files.files.length === 2 && files.files[0].originalFilename === files.files[1].originalFilename) {
-                const tmpPath = `${uploadDir}/${files.files[0].newFilename}`;
-                const newPath = `${dir}/${files.files[0].newFilename}`;
-                fs.renameSync(tmpPath, newPath);
+            //console.log(files.files);
 
-                const fileName = files.files[0].newFilename.split('.');
-                const fileExtension = fileName[fileName.length - 1];
-                
-                sqlArray.push(`('${uuidv4()}', '${fields.parentId}', '${files.files[0].originalFilename}', '${files.files[0].newFilename}', '${fileExtension}', '${files.files[0].size}', '${fullDate}', '${fields.user}')`);
-
-                fs.unlinkSync(`${uploadDir}/${files.files[1].newFilename}`);
-            } else {
+            if (files.files.length > 1) {
                 files.files.map((file: any) => {
                     //console.log(file);
 
@@ -66,6 +57,15 @@ export const upload = async (req: NextApiRequest, res: NextApiResponse) => {
                     
                     sqlArray.push(`('${uuidv4()}', '${fields.parentId}', '${file.originalFilename}', '${file.newFilename}', '${fileExtension}', '${file.size}', '${fullDate}', '${fields.user}')`);
                 });
+            } else {
+                const tmpPath = `${uploadDir}/${files.files.newFilename}`;
+                const newPath = `${dir}/${files.files.newFilename}`;
+                fs.renameSync(tmpPath, newPath);
+
+                const fileName = files.files.newFilename.split('.');
+                const fileExtension = fileName[fileName.length - 1];
+                
+                sqlArray.push(`('${uuidv4()}', '${fields.parentId}', '${files.files.originalFilename}', '${files.files.newFilename}', '${fileExtension}', '${files.files.size}', '${fullDate}', '${fields.user}')`);
             }
 
             sql = `insert into files (id, parent_id, source_name, name, extension, size, created, user) values ${sqlArray.join(',')};`;
