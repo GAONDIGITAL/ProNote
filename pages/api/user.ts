@@ -3,12 +3,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 
 const { v4: uuidv4 } = require('uuid');
 const db = require('../../config/db.ts');
-//const db_secret_key = process.env.DB_SECRET_KEY as string;
 
 let sql: string;
-let totalCount: number;
-let totalPage:number;
-const rows = 24;
 
 export default function user(req : NextApiRequest, res : NextApiResponse) {
     if (db.escape(req.body.module) === "'truncateNotes'") {

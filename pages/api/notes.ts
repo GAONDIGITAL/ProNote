@@ -76,6 +76,47 @@ export default function notes(req : NextApiRequest, res : NextApiResponse) {
                 }
             }
         );
+    } else if (db.escape(req.body.module) === "'notesLoadInfinite'") {
+        let page = Number(req.body.page);
+
+        sql = `select count(*) as cnt from notes where user = ${db.escape(req.body.user)};`;
+
+        db.query(sql,
+            function (err: any, result: any) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    //console.log(result);
+                    totalCount = Number(result[0].cnt);
+                    totalPage = Math.ceil(totalCount / rows);
+                    if (page < 1) page = 1;
+                    const from_record = (page - 1) * rows;
+
+                    let nextPage = (page < totalPage) ? true : false;
+
+                    sql = `select A.id, A.tags as tag, B.title as tagTitle, B.color as tagColor, A.title, A.description
+                                from notes A
+                                    left outer join tags B on B.id = A.tags 
+                                where A.user = ${db.escape(req.body.user)} 
+                                order by A.idx desc
+                                limit ${from_record}, ${rows};
+                            select ${nextPage} as nextPage, ${page} as page;`;
+                    //console.log(sql);
+                    
+                    db.query(sql,
+                        function (err: any, result: any) {
+                            if (err) {
+                                console.log(err);
+                            } else {
+                                //console.log(result);
+            
+                                res.json(result);
+                            }
+                        }
+                    );
+                }
+            }
+        );
     } else if (db.escape(req.body.module) === "'noteUpdate'") {
         if (db.escape(req.body.id) === "''") {
             moment.locale('ko');
@@ -1154,7 +1195,7 @@ export default function notes(req : NextApiRequest, res : NextApiResponse) {
     }
     //console.log(sql);
 
-    if (db.escape(req.body.module) !== "'notesLoad'" && db.escape(req.body.module) !== "'noteDeleteAfterfilesDelete'") {
+    if (!(db.escape(req.body.module) === "'notesLoad'" || db.escape(req.body.module) === "'noteDeleteAfterfilesDelete'" || db.escape(req.body.module) === "'notesLoadInfinite'")) {
         db.query(sql,
             function (err: any, result: any) {
                 if (err) {
